@@ -29,7 +29,7 @@ export default function CollectionScreen({ state, onBack, onHatch, eggCost }) {
         <div className="flex items-center gap-3 mb-4">
           <button onClick={onBack} className="mc-btn w-10 h-10 grid place-items-center text-xl">←</button>
           <h1 className="font-[family-name:var(--font-display)] text-2xl text-fuchsia-300 mc-text">Critter Collection</h1>
-          <div className="mc-panel ml-auto flex items-center gap-1 text-amber-800 px-3 py-1.5">
+          <div className="mc-chip ml-auto gap-1 text-amber-300 px-3 py-1.5">
             <span className="text-lg">🪙</span><span className="tnum">{state.coins}</span>
           </div>
         </div>

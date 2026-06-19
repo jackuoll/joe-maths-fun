@@ -6,6 +6,7 @@ import layout from '../game/mapLayout.json'
 import Mascot from './Mascot'
 
 const url = (name) => `${import.meta.env.BASE_URL}map/${name}`
+const ui = (name) => `${import.meta.env.BASE_URL}ui/${name}`
 const stageById = (id) => STAGES.find((s) => s.id === id)
 
 const [BGW, BGH] = layout.aspect
@@ -72,36 +73,36 @@ export default function MapScreen({ state, onPlay, onCollection, onToggleMute, c
             <h1 className="font-[family-name:var(--font-display)] text-xl sm:text-3xl text-amber-300 leading-none mc-text">Number Quest</h1>
             <p className="text-slate-300/80 text-xs sm:text-sm mc-text">Choose your adventure</p>
           </div>
-          <div className="mc-panel flex items-center gap-1 text-amber-800 px-2.5 py-1.5">
+          <div className="mc-chip gap-1 text-amber-300 px-3 py-1.5">
             <span className="text-base">🪙</span><span className="tnum text-sm">{state.coins}</span>
           </div>
-          <div className="mc-panel flex items-center gap-1 text-amber-700 px-2.5 py-1.5">
+          <div className="mc-chip gap-1 text-amber-200 px-3 py-1.5">
             <span className="text-base">★</span><span className="tnum text-sm">{totalStars}</span>
           </div>
-          <button onClick={onCollection} className="mc-panel flex items-center gap-1 text-fuchsia-800 px-2.5 py-1.5 active:translate-y-0.5">
+          <button onClick={onCollection} className="mc-chip gap-1 text-fuchsia-200 px-3 py-1.5 active:translate-y-0.5">
             <span className="text-base">📒</span><span className="text-sm">{state.owned.length}/12</span>
           </button>
-          <button onClick={onToggleMute} className="mc-panel w-9 h-9 grid place-items-center">
+          <button onClick={onToggleMute} className="mc-chip w-9 h-9 grid place-items-center">
             {state.muted ? '🔇' : '🔊'}
           </button>
         </div>
 
         {/* Daily bar: streak + reward chest + daily challenge */}
-        <div className="mc-panel flex items-center gap-2 sm:gap-3 px-3 py-2 mb-4">
-          <div className="flex items-center gap-1.5 text-slate-800">
+        <div className="mc-panel-dark flex items-center gap-2 sm:gap-3 px-3 py-2 mb-4">
+          <div className="flex items-center gap-1.5 text-slate-100">
             <span className="text-xl">🔥</span>
             <div className="leading-none">
-              <div className="font-[family-name:var(--font-display)] text-lg leading-none">{state.streak}</div>
-              <div className="text-[0.6rem] text-slate-600 leading-none">day streak</div>
+              <div className="font-[family-name:var(--font-display)] text-lg leading-none text-amber-300">{state.streak}</div>
+              <div className="text-[0.6rem] text-slate-300 leading-none">day streak</div>
             </div>
           </div>
 
           <button
             onClick={claim}
             disabled={!canClaimDaily}
-            className={`mc-btn-gold mc-btn px-3 py-2 text-xs sm:text-sm flex items-center gap-1.5 ${canClaimDaily ? 'animate-glow' : ''}`}
+            className={`mc-btn-gold mc-btn px-2 py-1.5 text-xs sm:text-sm flex items-center gap-1.5 ${canClaimDaily ? 'animate-glow' : ''}`}
           >
-            <span className="text-lg">🎁</span>
+            <img src={ui('chest.png')} alt="" className="w-6 h-6 object-contain" draggable={false} />
             {canClaimDaily ? 'Daily Reward' : 'Claimed ✓'}
           </button>
 
@@ -232,7 +233,11 @@ export default function MapScreen({ state, onPlay, onCollection, onToggleMute, c
               onClick={(e) => e.stopPropagation()}
               className="mc-panel p-6 text-center max-w-xs w-full"
             >
-              <motion.div animate={{ rotate: [0, -8, 8, -4, 0], y: [0, -6, 0] }} transition={{ duration: 1.2, repeat: Infinity }} className="text-6xl mb-1">🎁</motion.div>
+              <motion.img
+                src={ui('chest-open.png')} alt="" draggable={false}
+                initial={{ scale: 0.6 }} animate={{ scale: [0.9, 1.05, 1], y: [0, -4, 0] }} transition={{ duration: 0.6 }}
+                className="w-28 h-28 object-contain mx-auto mb-1 animate-floaty"
+              />
               <h2 className="font-[family-name:var(--font-display)] text-2xl text-slate-800">Daily Reward!</h2>
               <p className="text-slate-700 text-sm mt-1">Day <b>{reward.streak}</b> streak 🔥</p>
               <div className="mc-slot inline-flex items-center gap-2 px-4 py-2 mt-3 text-amber-800">

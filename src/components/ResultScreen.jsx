@@ -4,6 +4,8 @@ import { critterById } from '../game/critters'
 import { bigCelebration } from '../game/confetti'
 import Critter from './Critter'
 
+const ui = (name) => `${import.meta.env.BASE_URL}ui/${name}`
+
 export default function ResultScreen({ stage, result, newCritters, onNext, onMap, isLast, daily, streak }) {
   useEffect(() => { bigCelebration() }, [])
   const critter = newCritters[0] ? critterById(newCritters[0]) : null
@@ -16,8 +18,14 @@ export default function ResultScreen({ stage, result, newCritters, onNext, onMap
         transition={{ type: 'spring', stiffness: 200, damping: 18 }}
         className="mc-panel p-7 w-full max-w-sm text-center"
       >
-        <h2 className="font-[family-name:var(--font-display)] text-3xl text-slate-800">{daily ? 'Daily Complete!' : 'Stage Clear!'}</h2>
-        <p className="text-slate-600">{stage.emoji} {stage.title}</p>
+        <motion.img
+          src={ui('txt-complete.png')} alt={daily ? 'Daily Complete!' : 'Stage Clear!'} draggable={false}
+          initial={{ scale: 0.4, rotate: -8, opacity: 0 }}
+          animate={{ scale: 1, rotate: 0, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 240, damping: 12 }}
+          className="w-56 max-w-[80%] mx-auto -mt-2 mb-1 object-contain"
+        />
+        <p className="text-slate-600 font-[family-name:var(--font-display)]">{stage.emoji} {daily ? 'Daily Challenge' : stage.title}</p>
 
         {/* Stars */}
         <div className="flex justify-center gap-2 my-4">

@@ -279,7 +279,7 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
             <motion.div className="h-full" style={{ background: 'linear-gradient(180deg,#9ad24f,#5b8a3a)' }} animate={{ width: `${progress}%` }} transition={{ type: 'spring', stiffness: 120, damping: 20 }} />
           </div>
         </div>
-        <div className="mc-panel flex items-center gap-1 text-amber-800 px-3 py-1.5">
+        <div className="mc-chip gap-1 text-amber-300 px-3 py-1.5">
           <span className="text-lg">🪙</span><span className="tnum">{coins}</span>
         </div>
       </div>

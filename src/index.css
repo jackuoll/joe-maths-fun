@@ -22,90 +22,62 @@ body {
 .pixelated { image-rendering: pixelated; }
 .mc-text { text-shadow: 2px 2px 0 rgba(0,0,0,.45); }
 
-/* ---- Minecraft GUI panels & buttons (pixel bevels, square corners) ---- */
-/* Light stone inventory panel */
+/* ---- GUI-TheStone kit: 9-slice panels & buttons via border-image ---- */
+/* Light carved-stone panel */
 .mc-panel {
-  background: #c6c6c6;
-  border-radius: 0;
-  box-shadow:
-    inset 3px 3px 0 0 #fefefe,
-    inset -3px -3px 0 0 #565656,
-    0 0 0 3px #1d1d1d,
-    0 6px 0 0 rgba(0,0,0,.25);
+  border: 14px solid transparent;
+  border-image: var(--ui-panel) 46 fill / 14px / 0 stretch;
+  background: transparent;
+  color: #4a3f33;
 }
-/* Dark panel (tooltip / overlay) */
+/* Compact dark pill for small HUD counters (sits on the dark header) */
+.mc-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: rgba(18,22,31,.74);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), inset 0 0 0 2px rgba(255,255,255,.08), 0 2px 4px rgba(0,0,0,.45);
+}
+/* Dark popup panel (tooltips / overlays) */
 .mc-panel-dark {
-  background: #2b2b33;
-  color: #e8e8e8;
-  border-radius: 0;
-  box-shadow:
-    inset 2px 2px 0 0 #4a4a55,
-    inset -2px -2px 0 0 #14141a,
-    0 0 0 3px #0a0a0a;
+  border: 20px solid transparent;
+  border-image: var(--ui-popup) 56 fill / 20px / 0 stretch;
+  background: transparent;
+  color: #f0e9da;
 }
 
-/* Raised grey button */
+/* Dark stone button (neutral) */
 .mc-btn {
   font-family: var(--font-display);
-  font-weight: 700;
   color: #fff;
-  text-shadow: 2px 2px 0 rgba(0,0,0,.55);
-  background: #8b8b8b;
-  border: 0; border-radius: 0;
+  text-shadow: 1px 2px 0 rgba(0,0,0,.5);
+  border: 16px solid transparent;
+  border-image: var(--ui-btn) 24 fill / 16px / 0 stretch;
+  background: transparent;
   cursor: pointer;
-  box-shadow:
-    inset 2px 2px 0 0 #cfcfcf,
-    inset -3px -3px 0 0 #4f4f4f,
-    0 0 0 3px #1d1d1d;
-  transition: filter .08s;
+  transition: filter .08s, transform .05s;
 }
-.mc-btn:hover { filter: brightness(1.1); }
-.mc-btn:active {
-  box-shadow:
-    inset 3px 3px 0 0 #4f4f4f,
-    inset -2px -2px 0 0 #cfcfcf,
-    0 0 0 3px #1d1d1d;
-  transform: translateY(2px);
-}
-.mc-btn:disabled { filter: grayscale(.6) brightness(.8); cursor: not-allowed; opacity: .75; }
+.mc-btn:hover { filter: brightness(1.08); }
+.mc-btn:active { transform: translateY(2px); filter: brightness(.93); }
+.mc-btn:disabled { filter: grayscale(.55) brightness(.82); cursor: not-allowed; opacity: .8; }
 
-/* Grass-green primary button */
+/* Green primary pill button */
 .mc-btn-green {
-  background: #5b8a3a;
-  box-shadow:
-    inset 2px 2px 0 0 #82bd54,
-    inset -3px -3px 0 0 #3a5a24,
-    0 0 0 3px #1d1d1d;
+  border-width: 22px 34px;
+  border-image: var(--ui-btn-green) 38 fill / 22px 34px / 0 stretch;
 }
-.mc-btn-green:active {
-  box-shadow:
-    inset 3px 3px 0 0 #3a5a24,
-    inset -2px -2px 0 0 #82bd54,
-    0 0 0 3px #1d1d1d;
-}
-/* Gold button (rewards) */
+/* Gold/wood reward pill button */
 .mc-btn-gold {
-  background: #c9991f;
-  box-shadow:
-    inset 2px 2px 0 0 #f4c542,
-    inset -3px -3px 0 0 #8a6a10,
-    0 0 0 3px #1d1d1d;
-}
-.mc-btn-gold:active {
-  box-shadow:
-    inset 3px 3px 0 0 #8a6a10,
-    inset -2px -2px 0 0 #f4c542,
-    0 0 0 3px #1d1d1d;
+  border-width: 22px 34px;
+  border-image: var(--ui-btn-gold) 38 fill / 22px 34px / 0 stretch;
 }
 
-/* Recessed inventory slot */
+/* Recessed item slot */
 .mc-slot {
-  background: #8b8b8b;
-  border-radius: 0;
-  box-shadow:
-    inset 2px 2px 0 0 #373737,
-    inset -2px -2px 0 0 #ffffff66,
-    0 0 0 2px #1d1d1d;
+  border: 14px solid transparent;
+  border-image: var(--ui-slot) 40 fill / 14px / 0 stretch;
+  background: transparent;
 }
 
 @keyframes pop { 0%{transform:scale(.3);opacity:0} 60%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
