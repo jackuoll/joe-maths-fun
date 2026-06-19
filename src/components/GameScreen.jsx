@@ -3,20 +3,10 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { buildProblem } from '../game/problems'
 import { STAGE_PROBLEMS } from '../game/stages'
 import { sfx } from '../game/audio'
-import { tutorHealth, askTutor, speak, stopSpeaking, listen, canListen } from '../game/tutor'
 import Keypad from './Keypad'
 import Mascot from './Mascot'
 
 const toDigits = (n, len) => String(n).padStart(len, '0').split('').map(Number)
-
-// A short, plain-English description of the current step for the AI tutor.
-function stepContext(step, problem) {
-  if (!step) return ''
-  if (step.op === '+') {
-    return `adding the ${step.place} column: ${step.da} plus ${step.db}${step.carryIn ? ` plus ${step.carryIn} carried` : ''}`
-  }
-  return `the ${step.place} column: ${step.shownTop ?? step.top} minus ${step.db}${step.need ? ' (the top is too small, so it needs borrowing)' : ''}`
-}
 
 function hintFor(step) {
   if (step.op === '+') {
@@ -42,19 +32,9 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
   const [flyTen, setFlyTen] = useState(null)    // gridCol the "10" is sliding into
   const [colStep, setColStep] = useState(56)    // px between column centres (for the slide)
 
-  const [tutorOn, setTutorOn] = useState(false)   // local AI tutor bridge reachable?
-  const [tutorBusy, setTutorBusy] = useState(false)
-  const [listening, setListening] = useState(false)
-
   const mistakesRef = useRef(0)
   const lockRef = useRef(false)
   const gridRef = useRef(null)
-  const missRef = useRef(0)        // wrong tries on the current column (for auto-help)
-  const tutorBusyRef = useRef(false)
-  const helpRef = useRef(null)     // latest helpNow(), so wrong() can auto-offer
-  const attemptsRef = useRef([])   // wrong answers typed on the current column
-  const priorHintsRef = useRef([]) // hints already given this column (avoid repeats)
-  const helpLevelRef = useRef(0)   // how many hints asked this column (escalation)
 
   const len = problem.len
   const steps = problem.steps
@@ -100,8 +80,6 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
         setStepIndex(0)
         setPlaced({}); setCarryChips({}); setDisplayMap({})
         setBorrowedCols(new Set()); setFlyTen(null)
-        missRef.current = 0
-        attemptsRef.current = []; priorHintsRef.current = []; helpLevelRef.current = 0
         lockRef.current = false; setLocked(false)
         setSpeech('')
       }, 850)
@@ -109,76 +87,19 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
   }, [pIndex, stage.spec, onComplete])
 
   const goNext = useCallback(() => {
-    missRef.current = 0 // fresh column, fresh chances before auto-help
-    attemptsRef.current = []; priorHintsRef.current = []; helpLevelRef.current = 0
     const next = stepIndex + 1
     if (next >= steps.length) completeProblem()
     else { setStepIndex(next); lockRef.current = false; setLocked(false) }
   }, [stepIndex, steps.length, completeProblem])
 
-  const wrong = useCallback((step, attempt) => {
+  const wrong = useCallback((step) => {
     mistakesRef.current += 1
-    missRef.current += 1
-    if (attempt !== undefined && attempt !== null) attemptsRef.current.push(String(attempt))
     setShake(step.gridCol)
     setMood('think')
     setSpeech(hintFor(step))
     sfx.wrong()
     setTimeout(() => setShake(null), 450)
-    // after 2 wrong tries on this column, the owl offers a hint itself (once)
-    if (missRef.current === 2 && helpRef.current) helpRef.current()
   }, [])
-
-  // ---- AI tutor (local `claude -p` bridge + browser voice) ----------------
-  // Only show Help/Ask if the local bridge is reachable (hidden on the deployed site).
-  useEffect(() => { tutorHealth().then(setTutorOn) }, [])
-
-  const helpNow = useCallback(async () => {
-    if (!tutorOn || tutorBusyRef.current) return
-    helpLevelRef.current += 1                       // each press escalates
-    tutorBusyRef.current = true; setTutorBusy(true); setMood('think')
-    setSpeech(helpLevelRef.current > 1 ? 'Let me try explaining it another way…' : 'Let me help you…')
-    const step = steps[stepIndex]
-    const problemStr = `${problem.a} ${problem.op === '+' ? '+' : '-'} ${problem.b}`
-    const text = await askTutor({
-      problem: problemStr,
-      step: stepContext(step, problem),
-      attempts: attemptsRef.current.slice(),
-      priorHints: priorHintsRef.current.slice(),
-      level: helpLevelRef.current,
-    })
-    if (text) { priorHintsRef.current.push(text); setSpeech(text); setMood('happy'); speak(text) }
-    else { const m = 'Hmm, I can’t reach my helper right now — ask a grown-up!'; setSpeech(m); speak(m) }
-    tutorBusyRef.current = false; setTutorBusy(false)
-  }, [tutorOn, steps, stepIndex, problem])
-
-  useEffect(() => { helpRef.current = helpNow }, [helpNow])
-
-  const ask = useCallback(async () => {
-    if (!tutorOn || tutorBusyRef.current || listening) return
-    stopSpeaking()
-    setListening(true)
-    setSpeech('🎤 Listening… say your question out loud!')
-    const res = await listen()
-    setListening(false)
-    if (!res.transcript) {
-      const m = res.error === 'not-allowed'
-        ? 'I need permission to hear you. Ask a grown-up to allow the microphone!'
-        : res.error === 'unsupported'
-          ? 'Talking isn’t supported in this browser — try the Help button instead!'
-          : 'I didn’t catch that. Try again, or tap Help me!'
-      setSpeech(m); speak(m)
-      return
-    }
-    tutorBusyRef.current = true; setTutorBusy(true); setMood('think')
-    setSpeech(`You asked: “${res.transcript}” …`)
-    const step = steps[stepIndex]
-    const problemStr = `${problem.a} ${problem.op === '+' ? '+' : '-'} ${problem.b}`
-    const text = await askTutor({ problem: problemStr, step: stepContext(step, problem), question: res.transcript })
-    if (text) { setSpeech(text); setMood('happy'); speak(text) }
-    else { const m = 'Hmm, I can’t reach my helper right now — ask a grown-up!'; setSpeech(m); speak(m) }
-    tutorBusyRef.current = false; setTutorBusy(false)
-  }, [tutorOn, listening, steps, stepIndex, problem])
 
   // ---- handle a digit press ------------------------------------------------
   const handleDigit = useCallback((d) => {
@@ -190,7 +111,7 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
     if (step.op === '+') {
       const target = String(step.total)        // e.g. "11" for 5 + 6
       const nb = buffer + String(d)
-      if (target.slice(0, nb.length) !== nb) { wrong(step, nb); return } // keep good prefix
+      if (target.slice(0, nb.length) !== nb) { wrong(step); return } // keep good prefix
       setBuffer(nb)
 
       if (nb.length < target.length) { sfx.click(); return } // need the next digit
@@ -220,7 +141,7 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
     }
 
     // ----- SUBTRACTION: single difference digit -----------------------------
-    if (d !== step.result) { wrong(step, d); return }
+    if (d !== step.result) { wrong(step); return }
     lockRef.current = true; setLocked(true)
     setPlaced((p) => ({ ...p, [step.gridCol]: d }))
     setSpeech(step.reveal)
@@ -378,20 +299,6 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
           </motion.div>
         </AnimatePresence>
       </div>
-
-      {/* AI tutor buttons (only when the local helper is running) */}
-      {tutorOn && (
-        <div className="max-w-2xl w-full mx-auto px-4 mt-2 flex gap-2 justify-end">
-          <button onClick={() => helpNow()} disabled={tutorBusy} className="mc-btn mc-btn-gold px-3 py-1.5 text-sm flex items-center gap-1.5">
-            <span>💡</span>{tutorBusy ? 'Thinking…' : helpLevelRef.current > 0 ? 'Still stuck?' : 'Help me'}
-          </button>
-          {canListen() && (
-            <button onClick={ask} disabled={tutorBusy || listening} className="mc-btn px-3 py-1.5 text-sm flex items-center gap-1.5">
-              <span>{listening ? '🎙️' : '🎤'}</span>{listening ? 'Listening…' : 'Ask a question'}
-            </button>
-          )}
-        </div>
-      )}
 
       {/* The calculation */}
       <div className="flex-1 grid place-items-center px-4 py-6">
