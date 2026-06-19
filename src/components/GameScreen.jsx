@@ -28,9 +28,13 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
   const [mood, setMood] = useState('happy')
   const [buffer, setBuffer] = useState('')      // digits typed for the current + column
   const [splitAnim, setSplitAnim] = useState(null) // {gridCol, tens, ones} carry split anim
+  const [borrowedCols, setBorrowedCols] = useState(() => new Set()) // gridCols already regrouped
+  const [flyTen, setFlyTen] = useState(null)    // gridCol the "10" is sliding into
+  const [colStep, setColStep] = useState(56)    // px between column centres (for the slide)
 
   const mistakesRef = useRef(0)
   const lockRef = useRef(false)
+  const gridRef = useRef(null)
 
   const len = problem.len
   const steps = problem.steps
@@ -41,7 +45,24 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
   const answerCols = useMemo(() => new Set(steps.map((s) => s.gridCol)), [steps])
   const colToCi = useCallback((g) => (problem.op === '+' ? g - 1 : g), [problem.op])
 
+  // a subtraction column whose top is too small, with the regroup not yet done
+  const awaitingBorrow = !!(active && problem.op === '-' && active.need && !borrowedCols.has(active.gridCol))
+  const borrowSourceCi = awaitingBorrow ? active.ci - 1 : null // the neighbour the child taps
+
   const progress = ((pIndex + stepIndex / steps.length) / STAGE_PROBLEMS) * 100
+
+  // ---- measure column spacing so the "10" can slide one column to the right --
+  useEffect(() => {
+    const el = gridRef.current
+    if (!el) return
+    const measure = () => {
+      const cell = (el.clientWidth - (totalCols - 1) * 4) / totalCols // gap-x-1 = 4px
+      setColStep(cell + 4)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [totalCols])
 
   // ---- advance to the next problem or finish the stage --------------------
   const completeProblem = useCallback(() => {
@@ -57,6 +78,7 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
         setPIndex((i) => i + 1)
         setStepIndex(0)
         setPlaced({}); setCarryChips({}); setDisplayMap({})
+        setBorrowedCols(new Set()); setFlyTen(null)
         lockRef.current = false; setLocked(false)
         setSpeech('')
       }, 850)
@@ -127,21 +149,46 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
     setTimeout(goNext, 560)
   }, [steps, stepIndex, buffer, wrong, goNext])
 
-  // ---- activation: borrow visuals + auto leading carry + prompt -----------
+  // ---- the child performs the regroup themselves -------------------------
+  const performBorrow = useCallback(() => {
+    if (!active || problem.op !== '-' || !active.need || borrowedCols.has(active.gridCol)) return
+    const nb = steps.find((s) => s.ci === active.ci - 1)
+    sfx.carry()
+    setMood('cheer')
+    // the neighbour gives up a ten right away (3 → 2, original struck through)
+    setDisplayMap((m) => {
+      const nm = { ...m }
+      if (nb) nm[nb.gridCol] = { value: nb.top, kind: 'reduced', base: nb.da }
+      return nm
+    })
+    setFlyTen(active.gridCol)
+    setBorrowedCols((s) => { const n = new Set(s); n.add(active.gridCol); return n })
+    // ...and the ten lands in this column, turning e.g. 4 into 14
+    setTimeout(() => {
+      setDisplayMap((m) => ({ ...m, [active.gridCol]: { value: active.shownTop, kind: 'plus10' } }))
+    }, 360)
+    setTimeout(() => {
+      setFlyTen(null)
+      setSpeech(`Now we have ${active.shownTop} − ${active.db}. What does that make?`)
+      lockRef.current = false; setLocked(false)
+    }, 560)
+  }, [active, problem.op, borrowedCols, steps])
+
+  // ---- activation: prompt + leading carry; borrows wait for a tap ----------
   useEffect(() => {
     if (!active) return
-    setSpeech(active.prompt)
     setBuffer('')
 
-    if (problem.op === '-' && active.need) {
-      setDisplayMap((m) => {
-        const nm = { ...m, [active.gridCol]: { value: active.shownTop, kind: 'plus10' } }
-        const nb = steps.find((s) => s.ci === active.ci - 1)
-        if (nb) nm[nb.gridCol] = { value: nb.top, kind: 'reduced', base: nb.da }
-        return nm
-      })
-      sfx.carry()
+    // too small to subtract: ask the child to regroup, lock the keypad until they do
+    if (problem.op === '-' && active.need && !borrowedCols.has(active.gridCol)) {
+      const nb = steps.find((s) => s.ci === active.ci - 1)
+      lockRef.current = true; setLocked(true)
+      setMood('think')
+      setSpeech(`${active.top} − ${active.db}? We can't take ${active.db} from ${active.top}! Tap the glowing ${nb ? nb.place : 'next'} digit to borrow a ten.`)
+      return
     }
+
+    setSpeech(active.prompt)
 
     if (active.leading) {
       lockRef.current = true; setLocked(true)
@@ -190,6 +237,26 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
         </div>
       )
     }
+    // the neighbour the child taps to borrow a ten
+    if (g === borrowSourceCi) {
+      return (
+        <button
+          onClick={performBorrow}
+          className="grid place-items-center tnum font-[family-name:var(--font-display)] font-extrabold text-orange-600 rounded-xl animate-pulse"
+          style={{ height: cw, fontSize: '2.1rem', boxShadow: '0 0 0 3px #fb923c, 0 0 14px 2px #fdba7488' }}
+        >
+          {base ?? ''}
+        </button>
+      )
+    }
+    // the column that is too small, waiting for its ten
+    if (awaitingBorrow && g === active.ci) {
+      return (
+        <div className="grid place-items-center tnum font-[family-name:var(--font-display)] font-bold text-rose-400 rounded-xl" style={{ height: cw, fontSize: '2.1rem', boxShadow: 'inset 0 0 0 2px #fda4af' }}>
+          {base ?? ''}
+        </div>
+      )
+    }
     return (
       <div className="grid place-items-center tnum font-[family-name:var(--font-display)] font-bold text-slate-700" style={{ height: cw, fontSize: '2.1rem' }}>
         {base ?? ''}
@@ -235,13 +302,13 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
       {/* The calculation */}
       <div className="flex-1 grid place-items-center px-4 py-6">
         <div className="bg-white rounded-3xl shadow-xl px-5 sm:px-8 py-6">
-          <div className="grid gap-x-1" style={{ gridTemplateColumns: `repeat(${totalCols}, ${cw})` }}>
+          <div ref={gridRef} className="grid gap-x-1" style={{ gridTemplateColumns: `repeat(${totalCols}, ${cw})` }}>
             {/* carry row */}
             {Array.from({ length: totalCols }, (_, gi) => {
               const g = gi - 1
               const chip = g >= 0 ? carryChips[g] : null
               return (
-                <div key={`c${gi}`} className="grid place-items-center" style={{ height: '1.6rem' }}>
+                <div key={`c${gi}`} className="relative grid place-items-center" style={{ height: '1.6rem' }}>
                   <AnimatePresence>
                     {chip && (
                       <motion.span
@@ -251,6 +318,15 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
                       >1</motion.span>
                     )}
                   </AnimatePresence>
+                  {/* a ten sliding in from the neighbour on the left */}
+                  {flyTen === g && (
+                    <motion.span
+                      initial={{ x: -colStep, opacity: 0, scale: 0.5 }}
+                      animate={{ x: 0, opacity: [0, 1, 1], scale: 1 }}
+                      transition={{ duration: 0.42, ease: 'easeOut' }}
+                      className="absolute text-xs font-extrabold text-white bg-rose-500 rounded-full px-2 h-6 grid place-items-center shadow-md"
+                    >+10</motion.span>
+                  )}
                 </div>
               )
             })}
