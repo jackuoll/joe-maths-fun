@@ -11,22 +11,36 @@ import { spawn } from 'node:child_process'
 const PORT = process.env.TUTOR_PORT || 8787
 const TIMEOUT_MS = 45000
 
-function buildPrompt({ problem, step, mistakes, question }) {
+function buildPrompt({ problem, step, attempts, priorHints, level, question }) {
   const rules = [
-    'You are a warm, patient maths tutor talking directly to a 6-year-old child who is playing a maths game.',
-    'Reply with ONE or TWO short, encouraging sentences in simple words a young child understands.',
-    'NEVER give the final answer - give a gentle nudge or a way to think about it so the child can work it out.',
-    'No emojis, no markdown, no preamble - just the spoken hint.',
-  ].join(' ')
-  const ctx = [
-    problem ? `The problem is ${problem}.` : '',
-    step ? `Right now they are working on ${step}.` : '',
-    mistakes ? `They have tried ${mistakes} times and are stuck.` : '',
-  ].filter(Boolean).join(' ')
+    'You are a warm, patient maths tutor talking directly to a 6-year-old child playing a maths game.',
+    'Reply with ONE or TWO short, simple, encouraging sentences a young child understands.',
+    'No emojis, no markdown, no preamble - just the spoken words.',
+  ]
+  // Escalate with how many times help has been asked for THIS step.
+  const lvl = level || 1
+  if (lvl <= 1) {
+    rules.push('Give a gentle nudge about the current step so they can work it out. Do NOT state the final answer.')
+  } else if (lvl === 2) {
+    rules.push('They are still stuck, so be more concrete: name the exact numbers and exactly what to do with them, but let them say the final number themselves. Do NOT state the final answer.')
+  } else {
+    rules.push('They have tried several times and are getting frustrated. Gently walk through THIS step like a worked example and tell them the number to write down. It is fine to give the answer now, with a one-line reason.')
+  }
+  rules.push('Do not repeat a hint you already gave (listed below); say something new and more helpful each time.')
+
+  const ctx = []
+  if (problem) ctx.push(`The problem is ${problem}.`)
+  if (step) ctx.push(`They are working on ${step}.`)
+  if (attempts && attempts.length) {
+    ctx.push(`Their wrong answers for this step, in order: ${attempts.join(', ')}. Work out WHAT misunderstanding produced those answers and address it directly (e.g. they subtracted the small digit from the big one, forgot to add the carry, forgot to borrow).`)
+  }
+  if (priorHints && priorHints.length) {
+    ctx.push(`Hints you ALREADY gave this step (do not repeat these): ${priorHints.map((h) => `"${h}"`).join(' ')}`)
+  }
   const ask = question
-    ? `The child asked out loud: "${question}". Answer their question simply and kindly.`
-    : 'Give one helpful hint for the step they are on.'
-  return `${rules}\n\n${ctx}\n${ask}`
+    ? `The child asked out loud: "${question}". Answer their question simply and kindly, in the context of this problem.`
+    : 'Give the next hint for the step they are on.'
+  return `${rules.join(' ')}\n\n${ctx.join(' ')}\n${ask}`
 }
 
 function runClaude(prompt) {

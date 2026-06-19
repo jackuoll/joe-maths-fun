@@ -76,12 +76,13 @@ export function stopSpeaking() {
 export const canListen = () =>
   typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition)
 
-// Listen for a spoken question (speech-to-text). Resolves with the transcript
-// (string) or null if it failed / isn't supported.
+// Listen for a spoken question (speech-to-text). Resolves with
+// { transcript } on success, or { error } describing what went wrong
+// ('unsupported' | 'not-allowed' | 'no-speech' | 'audio-capture' | ...).
 export function listen() {
   return new Promise((resolve) => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SR) { resolve(null); return }
+    if (!SR) { resolve({ error: 'unsupported' }); return }
     try {
       const rec = new SR()
       rec.lang = 'en-US'
@@ -89,10 +90,10 @@ export function listen() {
       rec.maxAlternatives = 1
       let done = false
       const finish = (v) => { if (!done) { done = true; resolve(v) } }
-      rec.onresult = (e) => finish(e.results[0][0].transcript)
-      rec.onerror = () => finish(null)
-      rec.onend = () => finish(null)
+      rec.onresult = (e) => finish({ transcript: e.results[0][0].transcript })
+      rec.onerror = (e) => finish({ error: e.error || 'error' })
+      rec.onend = () => finish({ error: 'no-speech' }) // fires with no result
       rec.start()
-    } catch { resolve(null) }
+    } catch { resolve({ error: 'start-failed' }) }
   })
 }
