@@ -54,6 +54,17 @@ export const STAGES = [
   },
 ]
 
+// A rotating daily challenge: a longer, mixed set that refreshes every day.
+export const DAILY_STAGE = {
+  id: 'daily',
+  title: 'Daily Challenge',
+  blurb: 'A fresh mixed set every day. Come back tomorrow for more!',
+  spec: { len: 2, kind: 'mix' },
+  problems: 8,
+  color: '#5b8a3a', color2: '#82bd54', emoji: '📅',
+  critter: null,
+}
+
 export const stageIndex = (id) => STAGES.findIndex((s) => s.id === id)
 
 // stars on the previous stage unlock the next one

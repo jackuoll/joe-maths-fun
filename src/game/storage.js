@@ -3,11 +3,21 @@ import { CRITTERS } from './critters'
 
 const KEY = 'number-quest-save-v1'
 
+// ---- daily helpers (local time, midnight boundary) ----
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+export const todayStr = () => ymd(new Date())
+const yesterdayStr = () => { const d = new Date(); d.setDate(d.getDate() - 1); return ymd(d) }
+// daily chest grows with the streak, capped so it stays sensible
+export const dailyRewardCoins = (streak) => 20 + Math.min(streak, 7) * 10
+
 const fresh = () => ({
   coins: 0,
   stars: {},        // stageId -> best star count (0..3)
   owned: [],        // critter ids
   muted: false,
+  streak: 0,        // consecutive days played
+  lastReward: '',   // YYYY-MM-DD of last claimed daily chest
+  dailyDoneDate: '',// YYYY-MM-DD the daily challenge was last completed
 })
 
 function load() {
@@ -71,7 +81,27 @@ export function useGameState() {
     setState((s) => ({ ...s, muted: !s.muted }))
   }, [])
 
+  // Claim the daily reward chest (once per local day). Returns {coins, streak} or
+  // null if already claimed today.
+  const claimDaily = useCallback(() => {
+    let info = null
+    setState((s) => {
+      const today = todayStr()
+      if (s.lastReward === today) return s
+      const streak = s.lastReward === yesterdayStr() ? s.streak + 1 : 1
+      const reward = dailyRewardCoins(streak)
+      info = { coins: reward, streak }
+      return { ...s, coins: s.coins + reward, lastReward: today, streak }
+    })
+    return info
+  }, [])
+
+  // Mark today's Daily Challenge complete and bank the bonus coins.
+  const finishDaily = useCallback((coinsEarned) => {
+    setState((s) => ({ ...s, coins: s.coins + coinsEarned, dailyDoneDate: todayStr() }))
+  }, [])
+
   const reset = useCallback(() => setState(fresh()), [])
 
-  return { state, addCoins, finishStage, hatchEgg, toggleMute, reset, EGG_COST }
+  return { state, addCoins, finishStage, hatchEgg, toggleMute, reset, claimDaily, finishDaily, EGG_COST }
 }

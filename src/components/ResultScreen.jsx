@@ -4,20 +4,20 @@ import { critterById } from '../game/critters'
 import { bigCelebration } from '../game/confetti'
 import Critter from './Critter'
 
-export default function ResultScreen({ stage, result, newCritters, onNext, onMap, isLast }) {
+export default function ResultScreen({ stage, result, newCritters, onNext, onMap, isLast, daily, streak }) {
   useEffect(() => { bigCelebration() }, [])
   const critter = newCritters[0] ? critterById(newCritters[0]) : null
 
   return (
-    <div className="min-h-full w-full grid place-items-center px-4" style={{ background: `linear-gradient(180deg, ${stage.color2}, #fff 70%)` }}>
+    <div className="min-h-full w-full grid place-items-center px-4" style={{ background: `linear-gradient(180deg, ${stage.color}cc, #1c1e26 70%)` }}>
       <motion.div
         initial={{ scale: 0.8, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 200, damping: 18 }}
-        className="bg-white rounded-3xl shadow-2xl p-7 w-full max-w-sm text-center"
+        className="mc-panel p-7 w-full max-w-sm text-center"
       >
-        <h2 className="font-[family-name:var(--font-display)] font-extrabold text-3xl text-slate-800">Stage Clear!</h2>
-        <p className="text-slate-500 font-semibold">{stage.emoji} {stage.title}</p>
+        <h2 className="font-[family-name:var(--font-display)] text-3xl text-slate-800">{daily ? 'Daily Complete!' : 'Stage Clear!'}</h2>
+        <p className="text-slate-600">{stage.emoji} {stage.title}</p>
 
         {/* Stars */}
         <div className="flex justify-center gap-2 my-4">
@@ -27,17 +27,23 @@ export default function ResultScreen({ stage, result, newCritters, onNext, onMap
               initial={{ scale: 0, rotate: -40 }}
               animate={{ scale: i < result.stars ? 1.1 : 0.7, rotate: 0 }}
               transition={{ delay: 0.3 + i * 0.18, type: 'spring', stiffness: 260 }}
-              className={i < result.stars ? 'text-amber-400' : 'text-slate-200'}
+              className={i < result.stars ? 'text-amber-400' : 'text-slate-300'}
               style={{ fontSize: '3rem' }}
             >★</motion.span>
           ))}
         </div>
 
-        <div className="flex items-center justify-center gap-2 bg-amber-100 text-amber-700 font-bold rounded-2xl py-2.5 mb-3">
+        <div className="mc-slot flex items-center justify-center gap-2 text-amber-800 py-2.5 mb-3">
           <span className="text-2xl">🪙</span>
           <span className="text-xl">+{result.coinsEarned} coins</span>
         </div>
-        <p className="text-slate-400 text-sm font-medium mb-2">
+
+        {daily && (
+          <p className="text-emerald-700 text-sm font-bold mb-1">
+            🔥 {streak}-day streak{result.streakBonus ? ` · +${result.streakBonus} bonus coins!` : ''}
+          </p>
+        )}
+        <p className="text-slate-500 text-sm mb-2">
           {result.mistakes === 0 ? 'Perfect — no mistakes! 🌟' : `Finished with ${result.mistakes} slip-up${result.mistakes === 1 ? '' : 's'}. Keep practising!`}
         </p>
 
@@ -47,30 +53,28 @@ export default function ResultScreen({ stage, result, newCritters, onNext, onMap
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.9, type: 'spring', stiffness: 200 }}
-            className="mt-3 mb-1 bg-gradient-to-b from-fuchsia-50 to-white rounded-2xl p-3 border-2 border-fuchsia-200"
+            className="mc-slot mt-3 mb-1 p-3"
           >
-            <p className="font-[family-name:var(--font-display)] font-bold text-fuchsia-600">New critter unlocked!</p>
+            <p className="font-[family-name:var(--font-display)] text-fuchsia-700">New critter unlocked!</p>
             <div className="flex items-center justify-center gap-2">
               <motion.div animate={{ rotate: [0, -8, 8, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
                 <Critter critter={critter} size={96} />
               </motion.div>
               <div className="text-left">
-                <p className="font-[family-name:var(--font-display)] font-extrabold text-xl text-slate-800">{critter.name}</p>
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'hsl(' + critter.hue + ' 60% 45%)' }}>{critter.rarity}</p>
+                <p className="font-[family-name:var(--font-display)] text-xl text-slate-800">{critter.name}</p>
+                <p className="text-xs uppercase tracking-wide" style={{ color: 'hsl(' + critter.hue + ' 60% 40%)' }}>{critter.rarity}</p>
               </div>
             </div>
           </motion.div>
         )}
 
         <div className="flex gap-3 mt-5">
-          <button onClick={onMap} className="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-600 font-bold active:scale-95 transition">Map</button>
-          <button
-            onClick={onNext}
-            className="flex-1 py-3 rounded-2xl text-white font-bold active:scale-95 transition shadow-md"
-            style={{ background: stage.color }}
-          >
-            {isLast ? 'Play Again' : 'Next →'}
-          </button>
+          <button onClick={onMap} className="mc-btn flex-1 py-3">Map</button>
+          {!daily && (
+            <button onClick={onNext} className="mc-btn mc-btn-green flex-1 py-3">
+              {isLast ? 'Play Again' : 'Next →'}
+            </button>
+          )}
         </div>
       </motion.div>
     </div>

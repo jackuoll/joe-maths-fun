@@ -49,7 +49,8 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
   const awaitingBorrow = !!(active && problem.op === '-' && active.need && !borrowedCols.has(active.gridCol))
   const borrowSourceCi = awaitingBorrow ? active.ci - 1 : null // the neighbour the child taps
 
-  const progress = ((pIndex + stepIndex / steps.length) / STAGE_PROBLEMS) * 100
+  const problemCount = stage.problems ?? STAGE_PROBLEMS
+  const progress = ((pIndex + stepIndex / steps.length) / problemCount) * 100
 
   // ---- measure column spacing so the "10" can slide one column to the right --
   useEffect(() => {
@@ -66,10 +67,10 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
 
   // ---- advance to the next problem or finish the stage --------------------
   const completeProblem = useCallback(() => {
-    if (pIndex + 1 >= STAGE_PROBLEMS) {
+    if (pIndex + 1 >= problemCount) {
       const m = mistakesRef.current
       const stars = m === 0 ? 3 : m <= 2 ? 2 : 1
-      const coinsEarned = STAGE_PROBLEMS * 8 + stars * 10
+      const coinsEarned = problemCount * 8 + stars * 10
       sfx.win()
       setTimeout(() => onComplete({ stars, coinsEarned, mistakes: m }), 400)
     } else {
@@ -265,20 +266,20 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
   }
 
   return (
-    <div className="min-h-full w-full flex flex-col" style={{ background: `linear-gradient(180deg, ${stage.color2}55, #f8fafc 55%)` }}>
+    <div className="min-h-full w-full flex flex-col" style={{ background: `linear-gradient(180deg, ${stage.color}cc, ${stage.color2}66 35%, #1c1e26 70%)` }}>
       {/* HUD */}
       <div className="flex items-center gap-3 px-4 pt-4 max-w-2xl w-full mx-auto">
-        <button onClick={onExit} className="w-10 h-10 grid place-items-center rounded-full bg-white shadow text-slate-500 text-xl font-bold active:scale-90 transition">←</button>
+        <button onClick={onExit} className="mc-btn w-10 h-10 grid place-items-center text-xl">←</button>
         <div className="flex-1">
-          <div className="flex justify-between text-sm font-semibold text-slate-500 mb-1">
+          <div className="flex justify-between text-sm text-white mc-text mb-1">
             <span className="font-[family-name:var(--font-display)]">{stage.emoji} {stage.title}</span>
-            <span>Problem {pIndex + 1} / {STAGE_PROBLEMS}</span>
+            <span>Problem {pIndex + 1} / {problemCount}</span>
           </div>
-          <div className="h-3 rounded-full bg-white/70 overflow-hidden shadow-inner">
-            <motion.div className="h-full rounded-full" style={{ background: stage.color }} animate={{ width: `${progress}%` }} transition={{ type: 'spring', stiffness: 120, damping: 20 }} />
+          <div className="mc-slot h-4 overflow-hidden">
+            <motion.div className="h-full" style={{ background: 'linear-gradient(180deg,#9ad24f,#5b8a3a)' }} animate={{ width: `${progress}%` }} transition={{ type: 'spring', stiffness: 120, damping: 20 }} />
           </div>
         </div>
-        <div className="flex items-center gap-1 bg-amber-100 text-amber-700 font-bold rounded-full px-3 py-1.5 shadow-sm">
+        <div className="mc-panel flex items-center gap-1 text-amber-800 px-3 py-1.5">
           <span className="text-lg">🪙</span><span className="tnum">{coins}</span>
         </div>
       </div>
@@ -292,7 +293,7 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
             initial={{ opacity: 0, y: 8, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="relative flex-1 bg-white rounded-2xl rounded-bl-none shadow-md px-4 py-3 text-slate-700 font-semibold min-h-[3.5rem] flex items-center"
+            className="relative flex-1 mc-panel-dark px-4 py-3 text-slate-100 min-h-[3.5rem] flex items-center text-sm sm:text-base"
           >
             {speech || 'Let’s solve it column by column — start with the ones!'}
           </motion.div>
@@ -301,7 +302,7 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
 
       {/* The calculation */}
       <div className="flex-1 grid place-items-center px-4 py-6">
-        <div className="bg-white rounded-3xl shadow-xl px-5 sm:px-8 py-6">
+        <div className="mc-panel px-5 sm:px-8 py-6">
           <div ref={gridRef} className="grid gap-x-1" style={{ gridTemplateColumns: `repeat(${totalCols}, ${cw})` }}>
             {/* carry row */}
             {Array.from({ length: totalCols }, (_, gi) => {

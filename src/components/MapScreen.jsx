@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { STAGES, isUnlocked } from '../game/stages'
 import { sfx } from '../game/audio'
 import layout from '../game/mapLayout.json'
@@ -50,10 +50,17 @@ function Decor({ s }) {
   )
 }
 
-export default function MapScreen({ state, onPlay, onCollection, onToggleMute }) {
+export default function MapScreen({ state, onPlay, onCollection, onToggleMute, canClaimDaily, dailyDone, onClaimDaily, onPlayDaily }) {
   const [hover, setHover] = useState(null)
+  const [reward, setReward] = useState(null) // {coins, streak} after claiming the chest
   const totalStars = Object.values(state.stars).reduce((a, b) => a + b, 0)
   const roadPts = layout.pois.map((p) => ({ x: p.x, y: (p.y * VBH) / 100 }))
+
+  const claim = () => {
+    if (!canClaimDaily) return
+    const info = onClaimDaily()
+    if (info) { sfx.win?.(); setReward(info) }
+  }
 
   return (
     <div className="min-h-full w-full" style={{ background: 'radial-gradient(120% 90% at 50% 0%, #3b4a63 0%, #1f2937 60%, #111827 100%)' }}>
@@ -62,20 +69,49 @@ export default function MapScreen({ state, onPlay, onCollection, onToggleMute })
         <div className="flex items-center gap-2 sm:gap-3 mb-3">
           <Mascot size={56} />
           <div className="flex-1 min-w-0">
-            <h1 className="font-[family-name:var(--font-display)] font-extrabold text-xl sm:text-2xl text-amber-200 leading-none" style={{ textShadow: '0 2px 6px rgba(0,0,0,.5)' }}>Number Quest</h1>
-            <p className="text-slate-300/80 font-semibold text-xs sm:text-sm">Choose your adventure</p>
+            <h1 className="font-[family-name:var(--font-display)] text-xl sm:text-3xl text-amber-300 leading-none mc-text">Number Quest</h1>
+            <p className="text-slate-300/80 text-xs sm:text-sm mc-text">Choose your adventure</p>
           </div>
-          <div className="flex items-center gap-1 bg-amber-100 text-amber-700 font-bold rounded-full px-2.5 py-1 shadow">
+          <div className="mc-panel flex items-center gap-1 text-amber-800 px-2.5 py-1.5">
             <span className="text-base">🪙</span><span className="tnum text-sm">{state.coins}</span>
           </div>
-          <div className="flex items-center gap-1 bg-yellow-50 text-amber-600 font-bold rounded-full px-2.5 py-1 shadow">
+          <div className="mc-panel flex items-center gap-1 text-amber-700 px-2.5 py-1.5">
             <span className="text-base">★</span><span className="tnum text-sm">{totalStars}</span>
           </div>
-          <button onClick={onCollection} className="flex items-center gap-1 bg-fuchsia-100 text-fuchsia-700 font-bold rounded-full px-2.5 py-1 shadow active:scale-95 transition">
+          <button onClick={onCollection} className="mc-panel flex items-center gap-1 text-fuchsia-800 px-2.5 py-1.5 active:translate-y-0.5">
             <span className="text-base">📒</span><span className="text-sm">{state.owned.length}/12</span>
           </button>
-          <button onClick={onToggleMute} className="w-9 h-9 grid place-items-center rounded-full bg-white/90 shadow active:scale-90 transition">
+          <button onClick={onToggleMute} className="mc-panel w-9 h-9 grid place-items-center">
             {state.muted ? '🔇' : '🔊'}
+          </button>
+        </div>
+
+        {/* Daily bar: streak + reward chest + daily challenge */}
+        <div className="mc-panel flex items-center gap-2 sm:gap-3 px-3 py-2 mb-4">
+          <div className="flex items-center gap-1.5 text-slate-800">
+            <span className="text-xl">🔥</span>
+            <div className="leading-none">
+              <div className="font-[family-name:var(--font-display)] text-lg leading-none">{state.streak}</div>
+              <div className="text-[0.6rem] text-slate-600 leading-none">day streak</div>
+            </div>
+          </div>
+
+          <button
+            onClick={claim}
+            disabled={!canClaimDaily}
+            className={`mc-btn-gold mc-btn px-3 py-2 text-xs sm:text-sm flex items-center gap-1.5 ${canClaimDaily ? 'animate-glow' : ''}`}
+          >
+            <span className="text-lg">🎁</span>
+            {canClaimDaily ? 'Daily Reward' : 'Claimed ✓'}
+          </button>
+
+          <button
+            onClick={() => { if (!dailyDone) { sfx.click(); onPlayDaily() } }}
+            disabled={dailyDone}
+            className="mc-btn-green mc-btn px-3 py-2 text-xs sm:text-sm flex items-center gap-1.5 ml-auto"
+          >
+            <span className="text-lg">⛏️</span>
+            {dailyDone ? "Done today ✓" : 'Daily Challenge'}
           </button>
         </div>
 
@@ -181,6 +217,34 @@ export default function MapScreen({ state, onPlay, onCollection, onToggleMute })
 
         <p className="text-center text-slate-400 text-xs mt-4 font-medium">Tap a place on the map to start that level. Earn stars to open the path ahead!</p>
       </div>
+
+      {/* Daily reward chest popup */}
+      <AnimatePresence>
+        {reward && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setReward(null)}
+            className="fixed inset-0 bg-black/60 grid place-items-center px-6 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.6, y: 20 }} animate={{ scale: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 220, damping: 16 }}
+              onClick={(e) => e.stopPropagation()}
+              className="mc-panel p-6 text-center max-w-xs w-full"
+            >
+              <motion.div animate={{ rotate: [0, -8, 8, -4, 0], y: [0, -6, 0] }} transition={{ duration: 1.2, repeat: Infinity }} className="text-6xl mb-1">🎁</motion.div>
+              <h2 className="font-[family-name:var(--font-display)] text-2xl text-slate-800">Daily Reward!</h2>
+              <p className="text-slate-700 text-sm mt-1">Day <b>{reward.streak}</b> streak 🔥</p>
+              <div className="mc-slot inline-flex items-center gap-2 px-4 py-2 mt-3 text-amber-800">
+                <span className="text-2xl">🪙</span>
+                <span className="font-[family-name:var(--font-display)] text-xl">+{reward.coins}</span>
+              </div>
+              <p className="text-[0.7rem] text-slate-600 mt-3">Come back tomorrow to grow your streak!</p>
+              <button onClick={() => setReward(null)} className="mc-btn mc-btn-green px-6 py-2.5 mt-4 w-full">Collect</button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
