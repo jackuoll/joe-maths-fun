@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { critterById } from '../game/critters'
+import { critterById, RARITY_RING } from '../game/critters'
 import { bigCelebration } from '../game/confetti'
 import Critter from './Critter'
 
@@ -63,14 +63,14 @@ export default function ResultScreen({ stage, result, newCritters, onNext, onMap
             transition={{ delay: 0.9, type: 'spring', stiffness: 200 }}
             className="mc-slot mt-3 mb-1 p-3"
           >
-            <p className="font-[family-name:var(--font-display)] text-fuchsia-700">New critter unlocked!</p>
+            <p className="font-[family-name:var(--font-display)] text-fuchsia-700">New mob unlocked!</p>
             <div className="flex items-center justify-center gap-2">
               <motion.div animate={{ rotate: [0, -8, 8, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
                 <Critter critter={critter} size={96} />
               </motion.div>
               <div className="text-left">
                 <p className="font-[family-name:var(--font-display)] text-xl text-slate-800">{critter.name}</p>
-                <p className="text-xs uppercase tracking-wide" style={{ color: 'hsl(' + critter.hue + ' 60% 40%)' }}>{critter.rarity}</p>
+                <p className="text-xs uppercase tracking-wide" style={{ color: RARITY_RING[critter.rarity] }}>{critter.rarity}</p>
               </div>
             </div>
           </motion.div>

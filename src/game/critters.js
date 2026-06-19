@@ -1,19 +1,20 @@
-// Collectible "Number Critters". Each is drawn procedurally from this data
-// (see components/Critter.jsx). 12 total: 6 are stage rewards, 6 hatch from eggs.
+// Collectible Minecraft pets. Each renders as pixel art (see petSprites.js +
+// components/Critter.jsx). 12 total: 6 are stage rewards, 6 hatch from eggs.
+// `id`s are kept stable so existing saves keep their unlocked pets.
 
 export const CRITTERS = [
-  { id: 'addybug',  name: 'Addybug',   hue: 145, topper: 'antennae', pattern: 'spots',  rarity: 'common' },
-  { id: 'sumling',  name: 'Sumling',   hue: 35,  topper: 'leaf',     pattern: 'belly',  rarity: 'common' },
-  { id: 'carrymoth',name: 'Carrymoth', hue: 265, topper: 'wings',    pattern: 'stripe', rarity: 'rare'   },
-  { id: 'borrobear',name: 'Borrobear', hue: 205, topper: 'ears',     pattern: 'belly',  rarity: 'common' },
-  { id: 'minusmole',name: 'Minusmole', hue: 20,  topper: 'tuft',     pattern: 'spots',  rarity: 'common' },
-  { id: 'digitdrake',name:'Digit Drake',hue: 0,  topper: 'horns',    pattern: 'stripe', rarity: 'epic'   },
-  { id: 'tentopus', name: 'Tentopus',  hue: 320, topper: 'none',     pattern: 'spots',  rarity: 'rare'   },
-  { id: 'zerozoom', name: 'Zerozoom',  hue: 190, topper: 'antennae', pattern: 'belly',  rarity: 'common' },
-  { id: 'pluppy',   name: 'Pluppy',    hue: 50,  topper: 'ears',     pattern: 'belly',  rarity: 'common' },
-  { id: 'glowgoo',  name: 'Glowgoo',   hue: 100, topper: 'tuft',     pattern: 'stripe', rarity: 'rare'   },
-  { id: 'starlex',  name: 'Starlex',   hue: 285, topper: 'horns',    pattern: 'spots',  rarity: 'epic'   },
-  { id: 'cloudkin', name: 'Cloudkin',  hue: 215, topper: 'wings',    pattern: 'belly',  rarity: 'legendary' },
+  { id: 'addybug',   name: 'Piglet',      rarity: 'common',    sprite: 'pig' },
+  { id: 'sumling',   name: 'Chick',       rarity: 'common',    sprite: 'chicken' },
+  { id: 'carrymoth', name: 'Bumblebee',   rarity: 'rare',      sprite: 'bee' },
+  { id: 'borrobear', name: 'Wolf Pup',    rarity: 'common',    sprite: 'wolf' },
+  { id: 'minusmole', name: 'Polar Cub',   rarity: 'common',    sprite: 'polarbear' },
+  { id: 'digitdrake',name: 'Enderman',    rarity: 'epic',      sprite: 'enderman' },
+  { id: 'tentopus',  name: 'Slime',       rarity: 'rare',      sprite: 'slime' },
+  { id: 'zerozoom',  name: 'Calf',        rarity: 'common',    sprite: 'cow' },
+  { id: 'pluppy',    name: 'Axolotl',     rarity: 'common',    sprite: 'axolotl' },
+  { id: 'glowgoo',   name: 'Creeper',     rarity: 'rare',      sprite: 'creeper' },
+  { id: 'starlex',   name: 'Diamond',     rarity: 'epic',      sprite: 'diamond' },
+  { id: 'cloudkin',  name: 'Ender Dragon',rarity: 'legendary', sprite: 'enderdragon' },
 ]
 
 export const critterById = (id) => CRITTERS.find((c) => c.id === id)

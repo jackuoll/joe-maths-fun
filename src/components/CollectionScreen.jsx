@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { CRITTERS } from '../game/critters'
+import { CRITTERS, RARITY_RING } from '../game/critters'
 import { sfx } from '../game/audio'
 import { burst } from '../game/confetti'
 import Critter from './Critter'
@@ -28,7 +28,7 @@ export default function CollectionScreen({ state, onBack, onHatch, eggCost }) {
       <div className="max-w-2xl mx-auto px-4 py-5">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={onBack} className="mc-btn w-10 h-10 grid place-items-center text-xl">←</button>
-          <h1 className="font-[family-name:var(--font-display)] text-2xl text-fuchsia-300 mc-text">Critter Collection</h1>
+          <h1 className="font-[family-name:var(--font-display)] text-2xl text-fuchsia-300 mc-text">Mob Collection</h1>
           <div className="mc-chip ml-auto gap-1 text-amber-300 px-3 py-1.5">
             <span className="text-lg">🪙</span><span className="tnum">{state.coins}</span>
           </div>
@@ -40,7 +40,7 @@ export default function CollectionScreen({ state, onBack, onHatch, eggCost }) {
           <div className="flex-1">
             <p className="font-[family-name:var(--font-display)] text-slate-800 text-lg">Mystery Egg</p>
             <p className="text-sm text-slate-600">
-              {allOwned ? 'You caught them all! Hatch for bonus coins.' : `Spend ${eggCost} coins to hatch a random critter.`}
+              {allOwned ? 'You caught them all! Hatch for bonus coins.' : `Spend ${eggCost} coins to hatch a random mob.`}
             </p>
           </div>
           <button onClick={hatch} disabled={!canHatch} className="mc-btn mc-btn-green px-5 py-3">Hatch 🪙{eggCost}</button>
@@ -80,7 +80,7 @@ export default function CollectionScreen({ state, onBack, onHatch, eggCost }) {
                 <Critter critter={revealed} size={150} />
               </motion.div>
               <p className="font-[family-name:var(--font-display)] text-2xl text-slate-800">{revealed.name}</p>
-              <p className="text-xs uppercase tracking-wide mb-3" style={{ color: 'hsl(' + revealed.hue + ' 60% 40%)' }}>{revealed.rarity}</p>
+              <p className="text-xs uppercase tracking-wide mb-3" style={{ color: RARITY_RING[revealed.rarity] }}>{revealed.rarity}</p>
               <button onClick={() => setReveal(null)} className="mc-btn mc-btn-green px-6 py-2.5">Yay!</button>
             </motion.div>
           </motion.div>
