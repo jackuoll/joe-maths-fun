@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { STAGES, isUnlocked } from '../game/stages'
+import { DAILY_TASKS } from '../game/daily'
 import { sfx } from '../game/audio'
 import layout from '../game/mapLayout.json'
 import Mascot from './Mascot'
@@ -51,16 +52,17 @@ function Decor({ s }) {
   )
 }
 
-export default function MapScreen({ state, onPlay, onCollection, onToggleMute, canClaimDaily, dailyDone, onClaimDaily, onPlayDaily }) {
+export default function MapScreen({ state, daily, onPlay, onCollection, onToggleMute, onClaimTask }) {
   const [hover, setHover] = useState(null)
-  const [reward, setReward] = useState(null) // {coins, streak} after claiming the chest
+  const [showTasks, setShowTasks] = useState(false)
+  const [bonus, setBonus] = useState(false) // all-tasks-done chest popup
   const totalStars = Object.values(state.stars).reduce((a, b) => a + b, 0)
   const roadPts = layout.pois.map((p) => ({ x: p.x, y: (p.y * VBH) / 100 }))
 
-  const claim = () => {
-    if (!canClaimDaily) return
-    const info = onClaimDaily()
-    if (info) { sfx.win?.(); setReward(info) }
+  const doneCount = DAILY_TASKS.filter((t) => daily[t.metric] >= t.goal).length
+  const claimTask = (t) => {
+    const info = onClaimTask(t.id)
+    if (info) { sfx.win?.(); if (info.allDone) setBonus(true) }
   }
 
   return (
@@ -87,34 +89,18 @@ export default function MapScreen({ state, onPlay, onCollection, onToggleMute, c
           </button>
         </div>
 
-        {/* Daily bar: streak + reward chest + daily challenge */}
-        <div className="mc-panel-dark flex items-center gap-2 sm:gap-3 px-3 py-2 mb-4">
-          <div className="flex items-center gap-1.5 text-slate-100">
-            <span className="text-xl">🔥</span>
-            <div className="leading-none">
-              <div className="font-[family-name:var(--font-display)] text-lg leading-none text-amber-300">{state.streak}</div>
-              <div className="text-[0.6rem] text-slate-300 leading-none">day streak</div>
-            </div>
+        {/* Daily tasks bar (opens the checklist) */}
+        <button
+          onClick={() => { sfx.click(); setShowTasks(true) }}
+          className={`mc-panel-dark w-full flex items-center gap-3 px-4 py-2.5 mb-4 active:translate-y-0.5 ${doneCount > daily.claimed.length ? 'animate-glow' : ''}`}
+        >
+          <img src={ui('chest.png')} alt="" className="w-8 h-8 object-contain" draggable={false} />
+          <div className="text-left leading-tight">
+            <div className="font-[family-name:var(--font-display)] text-slate-100">Daily Tasks</div>
+            <div className="text-[0.7rem] text-slate-300">{daily.claimed.length}/{DAILY_TASKS.length} rewards collected</div>
           </div>
-
-          <button
-            onClick={claim}
-            disabled={!canClaimDaily}
-            className={`mc-btn-gold mc-btn px-2 py-1.5 text-xs sm:text-sm flex items-center gap-1.5 ${canClaimDaily ? 'animate-glow' : ''}`}
-          >
-            <img src={ui('chest.png')} alt="" className="w-6 h-6 object-contain" draggable={false} />
-            {canClaimDaily ? 'Daily Reward' : 'Claimed ✓'}
-          </button>
-
-          <button
-            onClick={() => { if (!dailyDone) { sfx.click(); onPlayDaily() } }}
-            disabled={dailyDone}
-            className="mc-btn-green mc-btn px-3 py-2 text-xs sm:text-sm flex items-center gap-1.5 ml-auto"
-          >
-            <span className="text-lg">⛏️</span>
-            {dailyDone ? "Done today ✓" : 'Daily Challenge'}
-          </button>
-        </div>
+          <span className="ml-auto mc-chip text-amber-200 px-3 py-1 text-sm">{doneCount}/{DAILY_TASKS.length} done</span>
+        </button>
 
         {/* The map */}
         <div
@@ -219,33 +205,73 @@ export default function MapScreen({ state, onPlay, onCollection, onToggleMute, c
         <p className="text-center text-slate-400 text-xs mt-4 font-medium">Tap a place on the map to start that level. Earn stars to open the path ahead!</p>
       </div>
 
-      {/* Daily reward chest popup */}
+      {/* Daily tasks checklist */}
       <AnimatePresence>
-        {reward && (
+        {showTasks && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => setReward(null)}
+            onClick={() => setShowTasks(false)}
+            className="fixed inset-0 bg-black/60 grid place-items-center px-5 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.7, y: 20 }} animate={{ scale: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 220, damping: 18 }}
+              onClick={(e) => e.stopPropagation()}
+              className="mc-panel-dark p-5 w-full max-w-sm"
+            >
+              <h2 className="font-[family-name:var(--font-display)] text-2xl text-amber-200 text-center mc-text">Daily Tasks</h2>
+              <p className="text-center text-slate-300 text-xs mb-3">A fresh checklist every day</p>
+              <div className="flex flex-col gap-2">
+                {DAILY_TASKS.map((t) => {
+                  const prog = Math.min(daily[t.metric], t.goal)
+                  const done = prog >= t.goal
+                  const claimed = daily.claimed.includes(t.id)
+                  return (
+                    <div key={t.id} className="mc-slot flex items-center gap-2.5 px-3 py-2">
+                      <span className="text-xl" style={{ filter: claimed ? 'none' : done ? 'none' : 'grayscale(.5)' }}>{t.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-slate-800 text-sm leading-tight">{t.label}</div>
+                        <div className="text-[0.7rem] text-slate-500">{prog}/{t.goal} · reward 🪙{t.reward}</div>
+                      </div>
+                      {claimed ? (
+                        <span className="text-emerald-600 font-[family-name:var(--font-display)] text-lg px-2">✓</span>
+                      ) : (
+                        <button onClick={() => claimTask(t)} disabled={!done} className="mc-btn mc-btn-green px-3 py-1.5 text-xs disabled:opacity-50">
+                          {done ? 'Claim' : `${prog}/${t.goal}`}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              <button onClick={() => setShowTasks(false)} className="mc-btn w-full py-2.5 mt-4">Close</button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* All tasks done bonus */}
+      <AnimatePresence>
+        {bonus && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setBonus(false)}
             className="fixed inset-0 bg-black/60 grid place-items-center px-6 z-50"
           >
             <motion.div
               initial={{ scale: 0.6, y: 20 }} animate={{ scale: 1, y: 0 }}
               transition={{ type: 'spring', stiffness: 220, damping: 16 }}
               onClick={(e) => e.stopPropagation()}
-              className="mc-panel p-6 text-center max-w-xs w-full"
+              className="mc-panel-dark p-6 text-center max-w-xs w-full"
             >
               <motion.img
                 src={ui('chest-open.png')} alt="" draggable={false}
-                initial={{ scale: 0.6 }} animate={{ scale: [0.9, 1.05, 1], y: [0, -4, 0] }} transition={{ duration: 0.6 }}
+                animate={{ scale: [0.9, 1.05, 1], y: [0, -4, 0] }} transition={{ duration: 0.6 }}
                 className="w-28 h-28 object-contain mx-auto mb-1 animate-floaty"
               />
-              <h2 className="font-[family-name:var(--font-display)] text-2xl text-slate-800">Daily Reward!</h2>
-              <p className="text-slate-700 text-sm mt-1">Day <b>{reward.streak}</b> streak 🔥</p>
-              <div className="mc-slot inline-flex items-center gap-2 px-4 py-2 mt-3 text-amber-800">
-                <span className="text-2xl">🪙</span>
-                <span className="font-[family-name:var(--font-display)] text-xl">+{reward.coins}</span>
-              </div>
-              <p className="text-[0.7rem] text-slate-600 mt-3">Come back tomorrow to grow your streak!</p>
-              <button onClick={() => setReward(null)} className="mc-btn mc-btn-green px-6 py-2.5 mt-4 w-full">Collect</button>
+              <h2 className="font-[family-name:var(--font-display)] text-2xl text-amber-200 mc-text">All Tasks Done!</h2>
+              <p className="text-slate-300 text-sm mt-1">You collected the bonus chest 🪙</p>
+              <button onClick={() => setBonus(false)} className="mc-btn mc-btn-green px-6 py-2.5 mt-4 w-full">Yay!</button>
             </motion.div>
           </motion.div>
         )}

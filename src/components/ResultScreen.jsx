@@ -6,7 +6,7 @@ import Critter from './Critter'
 
 const ui = (name) => `${import.meta.env.BASE_URL}ui/${name}`
 
-export default function ResultScreen({ stage, result, newCritters, onNext, onMap, isLast, daily, streak }) {
+export default function ResultScreen({ stage, result, newCritters, onNext, onMap, isLast }) {
   useEffect(() => { bigCelebration() }, [])
   const critter = newCritters[0] ? critterById(newCritters[0]) : null
 
@@ -19,13 +19,13 @@ export default function ResultScreen({ stage, result, newCritters, onNext, onMap
         className="mc-panel p-7 w-full max-w-sm text-center"
       >
         <motion.img
-          src={ui('txt-complete.png')} alt={daily ? 'Daily Complete!' : 'Stage Clear!'} draggable={false}
+          src={ui('txt-complete.png')} alt="Stage Clear!" draggable={false}
           initial={{ scale: 0.4, rotate: -8, opacity: 0 }}
           animate={{ scale: 1, rotate: 0, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 240, damping: 12 }}
           className="w-56 max-w-[80%] mx-auto -mt-2 mb-1 object-contain"
         />
-        <p className="text-slate-600 font-[family-name:var(--font-display)]">{stage.emoji} {daily ? 'Daily Challenge' : stage.title}</p>
+        <p className="text-slate-600 font-[family-name:var(--font-display)]">{stage.emoji} {stage.title}</p>
 
         {/* Stars */}
         <div className="flex justify-center gap-2 my-4">
@@ -46,11 +46,6 @@ export default function ResultScreen({ stage, result, newCritters, onNext, onMap
           <span className="text-xl">+{result.coinsEarned} coins</span>
         </div>
 
-        {daily && (
-          <p className="text-emerald-700 text-sm font-bold mb-1">
-            🔥 {streak}-day streak{result.streakBonus ? ` · +${result.streakBonus} bonus coins!` : ''}
-          </p>
-        )}
         <p className="text-slate-500 text-sm mb-2">
           {result.mistakes === 0 ? 'Perfect — no mistakes! 🌟' : `Finished with ${result.mistakes} slip-up${result.mistakes === 1 ? '' : 's'}. Keep practising!`}
         </p>
@@ -78,11 +73,9 @@ export default function ResultScreen({ stage, result, newCritters, onNext, onMap
 
         <div className="flex gap-3 mt-5">
           <button onClick={onMap} className="mc-btn flex-1 py-3">Map</button>
-          {!daily && (
-            <button onClick={onNext} className="mc-btn mc-btn-green flex-1 py-3">
-              {isLast ? 'Play Again' : 'Next →'}
-            </button>
-          )}
+          <button onClick={onNext} className="mc-btn mc-btn-green flex-1 py-3">
+            {isLast ? 'Play Again' : 'Next →'}
+          </button>
         </div>
       </motion.div>
     </div>
