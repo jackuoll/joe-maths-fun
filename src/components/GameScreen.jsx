@@ -3,10 +3,20 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { buildProblem } from '../game/problems'
 import { STAGE_PROBLEMS } from '../game/stages'
 import { sfx } from '../game/audio'
+import { tutorHealth, askTutor, speak, stopSpeaking, listen, canListen } from '../game/tutor'
 import Keypad from './Keypad'
 import Mascot from './Mascot'
 
 const toDigits = (n, len) => String(n).padStart(len, '0').split('').map(Number)
+
+// A short, plain-English description of the current step for the AI tutor.
+function stepContext(step, problem) {
+  if (!step) return ''
+  if (step.op === '+') {
+    return `adding the ${step.place} column: ${step.da} plus ${step.db}${step.carryIn ? ` plus ${step.carryIn} carried` : ''}`
+  }
+  return `the ${step.place} column: ${step.shownTop ?? step.top} minus ${step.db}${step.need ? ' (the top is too small, so it needs borrowing)' : ''}`
+}
 
 function hintFor(step) {
   if (step.op === '+') {
@@ -32,9 +42,16 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
   const [flyTen, setFlyTen] = useState(null)    // gridCol the "10" is sliding into
   const [colStep, setColStep] = useState(56)    // px between column centres (for the slide)
 
+  const [tutorOn, setTutorOn] = useState(false)   // local AI tutor bridge reachable?
+  const [tutorBusy, setTutorBusy] = useState(false)
+  const [listening, setListening] = useState(false)
+
   const mistakesRef = useRef(0)
   const lockRef = useRef(false)
   const gridRef = useRef(null)
+  const missRef = useRef(0)        // wrong tries on the current column (for auto-help)
+  const tutorBusyRef = useRef(false)
+  const helpRef = useRef(null)     // latest helpNow(), so wrong() can auto-offer
 
   const len = problem.len
   const steps = problem.steps
@@ -80,6 +97,7 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
         setStepIndex(0)
         setPlaced({}); setCarryChips({}); setDisplayMap({})
         setBorrowedCols(new Set()); setFlyTen(null)
+        missRef.current = 0
         lockRef.current = false; setLocked(false)
         setSpeech('')
       }, 850)
@@ -87,6 +105,7 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
   }, [pIndex, stage.spec, onComplete])
 
   const goNext = useCallback(() => {
+    missRef.current = 0 // fresh column, fresh chances before auto-help
     const next = stepIndex + 1
     if (next >= steps.length) completeProblem()
     else { setStepIndex(next); lockRef.current = false; setLocked(false) }
@@ -94,12 +113,49 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
 
   const wrong = useCallback((step) => {
     mistakesRef.current += 1
+    missRef.current += 1
     setShake(step.gridCol)
     setMood('think')
     setSpeech(hintFor(step))
     sfx.wrong()
     setTimeout(() => setShake(null), 450)
+    // after 2 wrong tries on this column, the owl offers a hint itself
+    if (missRef.current >= 2 && helpRef.current) helpRef.current(true)
   }, [])
+
+  // ---- AI tutor (local `claude -p` bridge + browser voice) ----------------
+  // Only show Help/Ask if the local bridge is reachable (hidden on the deployed site).
+  useEffect(() => { tutorHealth().then(setTutorOn) }, [])
+
+  const helpNow = useCallback(async (auto = false) => {
+    if (!tutorOn || tutorBusyRef.current) return
+    tutorBusyRef.current = true; setTutorBusy(true); setMood('think')
+    if (auto) setSpeech('Hmm, let me help you with this one…')
+    const step = steps[stepIndex]
+    const problemStr = `${problem.a} ${problem.op === '+' ? '+' : '-'} ${problem.b}`
+    const text = await askTutor({ problem: problemStr, step: stepContext(step, problem), mistakes: missRef.current })
+    if (text) { setSpeech(text); setMood('happy'); speak(text) }
+    else if (!auto) { setSpeech('Hmm, I can’t reach my helper right now — ask a grown-up!') }
+    tutorBusyRef.current = false; setTutorBusy(false)
+  }, [tutorOn, steps, stepIndex, problem])
+
+  useEffect(() => { helpRef.current = helpNow }, [helpNow])
+
+  const ask = useCallback(async () => {
+    if (!tutorOn || tutorBusyRef.current || listening) return
+    stopSpeaking()
+    setListening(true)
+    const q = await listen()
+    setListening(false)
+    if (!q) return
+    tutorBusyRef.current = true; setTutorBusy(true); setMood('think')
+    setSpeech(`You asked: “${q}”`)
+    const step = steps[stepIndex]
+    const problemStr = `${problem.a} ${problem.op === '+' ? '+' : '-'} ${problem.b}`
+    const text = await askTutor({ problem: problemStr, step: stepContext(step, problem), question: q })
+    if (text) { setSpeech(text); setMood('happy'); speak(text) }
+    tutorBusyRef.current = false; setTutorBusy(false)
+  }, [tutorOn, listening, steps, stepIndex, problem])
 
   // ---- handle a digit press ------------------------------------------------
   const handleDigit = useCallback((d) => {
@@ -299,6 +355,20 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* AI tutor buttons (only when the local helper is running) */}
+      {tutorOn && (
+        <div className="max-w-2xl w-full mx-auto px-4 mt-2 flex gap-2 justify-end">
+          <button onClick={() => helpNow(false)} disabled={tutorBusy} className="mc-btn mc-btn-gold px-3 py-1.5 text-sm flex items-center gap-1.5">
+            <span>💡</span>{tutorBusy ? 'Thinking…' : 'Help me'}
+          </button>
+          {canListen() && (
+            <button onClick={ask} disabled={tutorBusy || listening} className="mc-btn px-3 py-1.5 text-sm flex items-center gap-1.5">
+              <span>{listening ? '🎙️' : '🎤'}</span>{listening ? 'Listening…' : 'Ask the owl'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* The calculation */}
       <div className="flex-1 grid place-items-center px-4 py-6">
