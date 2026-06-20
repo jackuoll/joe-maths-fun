@@ -92,14 +92,16 @@ export default function MapScreen({ state, daily, onPlay, onCollection, onToggle
         {/* Daily tasks bar (opens the checklist) */}
         <button
           onClick={() => { sfx.click(); setShowTasks(true) }}
-          className={`mc-panel-dark w-full flex items-center gap-3 px-4 py-2.5 mb-4 active:translate-y-0.5 ${doneCount > daily.claimed.length ? 'animate-glow' : ''}`}
+          className={`mc-bar w-full flex items-center gap-3 px-2 py-1.5 mb-4 active:translate-y-0.5 ${doneCount > daily.claimed.length ? 'animate-glow' : ''}`}
         >
-          <img src={ui('chest.png')} alt="" className="w-8 h-8 object-contain" draggable={false} />
-          <div className="text-left leading-tight">
+          <div className="relative shrink-0 grid place-items-center" style={{ width: 42, height: 38, backgroundImage: `url(${ui('icon-frame.png')})`, backgroundSize: '100% 100%' }}>
+            <img src={ui('chest.png')} alt="" className="w-6 h-6 object-contain" draggable={false} />
+          </div>
+          <div className="text-left leading-tight flex-1">
             <div className="font-[family-name:var(--font-display)] text-slate-100">Daily Tasks</div>
             <div className="text-[0.7rem] text-slate-300">{daily.claimed.length}/{DAILY_TASKS.length} rewards collected</div>
           </div>
-          <span className="ml-auto mc-chip text-amber-200 px-3 py-1 text-sm">{doneCount}/{DAILY_TASKS.length} done</span>
+          <span className="mc-chip text-amber-200 px-3 py-1 text-sm">{doneCount}/{DAILY_TASKS.length} done</span>
         </button>
 
         {/* The map */}
@@ -217,26 +219,54 @@ export default function MapScreen({ state, daily, onPlay, onCollection, onToggle
               initial={{ scale: 0.7, y: 20 }} animate={{ scale: 1, y: 0 }}
               transition={{ type: 'spring', stiffness: 220, damping: 18 }}
               onClick={(e) => e.stopPropagation()}
-              className="mc-panel-dark p-5 w-full max-w-sm"
+              className="relative mc-panel-dark w-full max-w-sm pt-9 pb-5 px-3"
             >
-              <h2 className="font-[family-name:var(--font-display)] text-2xl text-amber-200 text-center mc-text">Daily Tasks</h2>
-              <p className="text-center text-slate-300 text-xs mb-3">A fresh checklist every day</p>
-              <div className="flex flex-col gap-2">
+              {/* Title banner: center plate with deco wings peeking from behind.
+                  Sits high so most of it is above the frame, lower half straddling
+                  the top edge - it must not cover the first task row. */}
+              <div className="absolute left-1/2 -top-12 -translate-x-1/2 z-10" style={{ width: 196 }}>
+                <img src={ui('title-wing-l.png')} alt="" draggable={false} className="absolute -left-7 bottom-2 w-16 select-none" style={{ zIndex: -1 }} />
+                <img src={ui('title-wing-r.png')} alt="" draggable={false} className="absolute -right-7 bottom-2 w-16 select-none" style={{ zIndex: -1 }} />
+                <div className="grid place-items-center" style={{ height: 84, backgroundImage: `url(${ui('title-center.png')})`, backgroundSize: '100% 100%' }}>
+                  <span className="font-[family-name:var(--font-display)] text-lg text-amber-100 mc-text pb-1.5">Daily Tasks</span>
+                </div>
+              </div>
+
+              {/* Close knob perched outside the top-right corner */}
+              <button
+                onClick={() => setShowTasks(false)} aria-label="Close"
+                className="absolute -right-5 -top-5 w-12 h-12 grid place-items-center active:translate-y-0.5 z-20"
+                style={{ backgroundImage: `url(${ui('knob.png')})`, backgroundSize: '100% 100%' }}
+              >
+                <span className="text-stone-800 text-lg font-black leading-none" style={{ textShadow: '0 1px 0 rgba(255,255,255,.25)' }}>✕</span>
+              </button>
+
+              {/* Recessed inner panel the tasks sit on (matches the kit's popups) */}
+              <div className="rounded-2xl px-2.5 py-2" style={{ background: 'rgba(0,0,0,.24)', boxShadow: 'inset 0 2px 7px rgba(0,0,0,.55), inset 0 0 0 2px rgba(0,0,0,.16)' }}>
+              <div className="flex flex-col gap-1.5">
                 {DAILY_TASKS.map((t) => {
                   const prog = Math.min(daily[t.metric], t.goal)
+                  const pct = Math.round((prog / t.goal) * 100)
                   const done = prog >= t.goal
                   const claimed = daily.claimed.includes(t.id)
                   return (
-                    <div key={t.id} className="mc-slot flex items-center gap-2.5 px-3 py-2">
-                      <span className="text-xl" style={{ filter: claimed ? 'none' : done ? 'none' : 'grayscale(.5)' }}>{t.icon}</span>
+                    <div key={t.id} className="flex items-center gap-2.5 py-1">
+                      <div className="relative shrink-0 grid place-items-center" style={{ width: 50, height: 45, backgroundImage: `url(${ui('icon-frame.png')})`, backgroundSize: '100% 100%' }}>
+                        <span className="text-2xl" style={{ filter: done ? 'none' : 'grayscale(.45)' }}>{t.icon}</span>
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-slate-800 text-sm leading-tight">{t.label}</div>
-                        <div className="text-[0.7rem] text-slate-500">{prog}/{t.goal} · reward 🪙{t.reward}</div>
+                        <div className="text-slate-100 text-sm leading-tight font-[family-name:var(--font-display)]">{t.label}</div>
+                        <div className="mt-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,.4)', boxShadow: 'inset 0 1px 2px rgba(0,0,0,.55)' }}>
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(180deg,#ffb454,#ef8a2b)' }} />
+                        </div>
+                        <div className="text-[0.65rem] text-slate-300 mt-0.5">{prog}/{t.goal} · reward 🪙{t.reward}</div>
                       </div>
                       {claimed ? (
-                        <span className="text-emerald-600 font-[family-name:var(--font-display)] text-lg px-2">✓</span>
+                        <div className="shrink-0 w-12 h-9 grid place-items-center rounded-lg" style={{ background: 'rgba(0,0,0,.32)', boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.3)' }}>
+                          <span className="text-emerald-400 text-xl font-black">✓</span>
+                        </div>
                       ) : (
-                        <button onClick={() => claimTask(t)} disabled={!done} className="mc-btn mc-btn-green px-3 py-1.5 text-xs disabled:opacity-50">
+                        <button onClick={() => claimTask(t)} disabled={!done} className={`shrink-0 px-3 py-1.5 text-xs font-[family-name:var(--font-display)] mc-btn ${done ? 'mc-btn-green' : 'mc-btn-brown'}`}>
                           {done ? 'Claim' : `${prog}/${t.goal}`}
                         </button>
                       )}
@@ -244,7 +274,7 @@ export default function MapScreen({ state, daily, onPlay, onCollection, onToggle
                   )
                 })}
               </div>
-              <button onClick={() => setShowTasks(false)} className="mc-btn w-full py-2.5 mt-4">Close</button>
+              </div>
             </motion.div>
           </motion.div>
         )}

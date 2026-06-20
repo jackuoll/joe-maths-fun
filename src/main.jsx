@@ -15,6 +15,7 @@ import './index.css'
   set('--ui-btn', 'btn.png')
   set('--ui-btn-green', 'btn-green.png')
   set('--ui-btn-gold', 'btn-gold.png')
+  set('--ui-btn-brown', 'btn-brown.png')
   set('--ui-slot', 'slot.png')
 }
 
