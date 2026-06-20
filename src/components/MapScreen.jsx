@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { STAGES, isUnlocked } from '../game/stages'
 import { DAILY_TASKS } from '../game/daily'
+import { themeGradient } from '../game/shop'
 import { sfx } from '../game/audio'
 import layout from '../game/mapLayout.json'
 import Mascot from './Mascot'
@@ -52,7 +53,7 @@ function Decor({ s }) {
   )
 }
 
-export default function MapScreen({ state, daily, onPlay, onCollection, onToggleMute, onClaimTask }) {
+export default function MapScreen({ state, daily, onPlay, onCollection, onShop, onToggleMute, onClaimTask }) {
   const [hover, setHover] = useState(null)
   const [showTasks, setShowTasks] = useState(false)
   const [bonus, setBonus] = useState(false) // all-tasks-done chest popup
@@ -66,11 +67,11 @@ export default function MapScreen({ state, daily, onPlay, onCollection, onToggle
   }
 
   return (
-    <div className="min-h-full w-full" style={{ background: 'radial-gradient(120% 90% at 50% 0%, #3b4a63 0%, #1f2937 60%, #111827 100%)' }}>
+    <div className="min-h-full w-full" style={{ background: themeGradient(state.equipped.theme) }}>
       <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4">
         {/* Header / HUD */}
         <div className="flex items-center gap-2 sm:gap-3 mb-3">
-          <Mascot size={56} />
+          <Mascot size={56} hat={state.equipped.hat} />
           <div className="flex-1 min-w-0">
             <h1 className="font-[family-name:var(--font-display)] text-xl sm:text-3xl text-amber-300 leading-none mc-text">Number Quest</h1>
             <p className="text-slate-300/80 text-xs sm:text-sm mc-text">Choose your adventure</p>
@@ -83,6 +84,9 @@ export default function MapScreen({ state, daily, onPlay, onCollection, onToggle
           </div>
           <button onClick={onCollection} className="mc-chip gap-1 text-fuchsia-200 px-3 py-1.5 active:translate-y-0.5">
             <span className="text-base">📒</span><span className="text-sm">{state.owned.length}/12</span>
+          </button>
+          <button onClick={() => { sfx.click(); onShop() }} className="mc-chip gap-1 text-amber-200 px-3 py-1.5 active:translate-y-0.5">
+            <span className="text-base">🛒</span><span className="text-sm hidden sm:inline">Shop</span>
           </button>
           <button onClick={onToggleMute} className="mc-chip w-9 h-9 grid place-items-center">
             {state.muted ? '🔇' : '🔊'}
@@ -219,24 +223,23 @@ export default function MapScreen({ state, daily, onPlay, onCollection, onToggle
               initial={{ scale: 0.7, y: 20 }} animate={{ scale: 1, y: 0 }}
               transition={{ type: 'spring', stiffness: 220, damping: 18 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative mc-panel-dark w-full max-w-sm pt-9 pb-5 px-3"
+              className="relative mc-panel-dark w-full max-w-[420px] pt-7 pb-5 px-3"
             >
-              {/* Title banner: center plate with deco wings peeking from behind.
-                  Sits high so most of it is above the frame, lower half straddling
-                  the top edge - it must not cover the first task row. */}
-              <div className="absolute left-1/2 -top-12 -translate-x-1/2 z-10" style={{ width: 196 }}>
-                <img src={ui('title-wing-l.png')} alt="" draggable={false} className="absolute -left-7 bottom-2 w-16 select-none" style={{ zIndex: -1 }} />
-                <img src={ui('title-wing-r.png')} alt="" draggable={false} className="absolute -right-7 bottom-2 w-16 select-none" style={{ zIndex: -1 }} />
-                <div className="grid place-items-center" style={{ height: 84, backgroundImage: `url(${ui('title-center.png')})`, backgroundSize: '100% 100%' }}>
-                  <span className="font-[family-name:var(--font-display)] text-lg text-amber-100 mc-text pb-1.5">Daily Tasks</span>
+              {/* Title banner: wide + short so the long title isn't squashed against
+                  the side decorations. Sits high, lower half straddling the top edge. */}
+              <div className="absolute left-1/2 -top-10 -translate-x-1/2 z-10" style={{ width: 214 }}>
+                <img src={ui('title-wing-l.png')} alt="" draggable={false} className="absolute -left-11 select-none" style={{ zIndex: -1, width: 64, height: 26, top: 8 }} />
+                <img src={ui('title-wing-r.png')} alt="" draggable={false} className="absolute -right-11 select-none" style={{ zIndex: -1, width: 64, height: 26, top: 8 }} />
+                <div className="grid place-items-center" style={{ height: 62, backgroundImage: `url(${ui('title-center.png')})`, backgroundSize: '100% 100%' }}>
+                  <span className="font-[family-name:var(--font-display)] text-base text-amber-100 mc-text pb-0.5">Daily Tasks</span>
                 </div>
               </div>
 
-              {/* Close knob perched outside the top-right corner */}
+              {/* Close knob - its centre aligns with the panel's top-right corner */}
               <button
                 onClick={() => setShowTasks(false)} aria-label="Close"
-                className="absolute -right-5 -top-5 w-12 h-12 grid place-items-center active:translate-y-0.5 z-20"
-                style={{ backgroundImage: `url(${ui('knob.png')})`, backgroundSize: '100% 100%' }}
+                className="absolute w-12 h-12 grid place-items-center active:translate-y-0.5 z-20"
+                style={{ top: -52, right: -49, backgroundImage: `url(${ui('knob.png')})`, backgroundSize: '100% 100%' }}
               >
                 <span className="text-stone-800 text-lg font-black leading-none" style={{ textShadow: '0 1px 0 rgba(255,255,255,.25)' }}>✕</span>
               </button>
@@ -266,7 +269,7 @@ export default function MapScreen({ state, daily, onPlay, onCollection, onToggle
                           <span className="text-emerald-400 text-xl font-black">✓</span>
                         </div>
                       ) : (
-                        <button onClick={() => claimTask(t)} disabled={!done} className={`shrink-0 px-3 py-1.5 text-xs font-[family-name:var(--font-display)] mc-btn ${done ? 'mc-btn-green' : 'mc-btn-brown'}`}>
+                        <button onClick={() => claimTask(t)} disabled={!done} className={`shrink-0 px-1.5 py-0.5 text-xs font-[family-name:var(--font-display)] mc-btn ${done ? 'mc-btn-green-sm' : 'mc-btn-brown-sm'}`}>
                           {done ? 'Claim' : `${prog}/${t.goal}`}
                         </button>
                       )}

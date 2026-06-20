@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CRITTERS } from './critters'
 import { DAILY_TASKS, ALL_DONE_BONUS } from './daily'
+import { DEFAULT_EQUIP, shopItemById } from './shop'
 
 const KEY = 'number-quest-save-v1'
 
@@ -16,6 +17,8 @@ const fresh = () => ({
   coins: 0,
   stars: {},        // stageId -> best star count (0..3)
   owned: [],        // critter ids
+  purchased: [],    // shop cosmetic ids bought (free defaults excluded)
+  equipped: { ...DEFAULT_EQUIP }, // { hat, theme }
   muted: false,
   daily: freshDaily(),
 })
@@ -26,6 +29,7 @@ function load() {
     if (raw) {
       const s = { ...fresh(), ...JSON.parse(raw) }
       s.daily = rollDaily(s.daily)
+      s.equipped = { ...DEFAULT_EQUIP, ...s.equipped }
       return s
     }
   } catch { /* ignore */ }
@@ -85,6 +89,23 @@ export function useGameState() {
     return hatched
   }, [])
 
+  // Buy a shop cosmetic. Returns true if the purchase went through.
+  const buyItem = useCallback((id) => {
+    let ok = false
+    setState((s) => {
+      const item = shopItemById(id)
+      if (!item || s.purchased.includes(id) || s.coins < item.cost) return s
+      ok = true
+      return { ...s, coins: s.coins - item.cost, purchased: [...s.purchased, id] }
+    })
+    return ok
+  }, [])
+
+  // Equip an owned cosmetic into a slot ('hat' | 'theme').
+  const equipItem = useCallback((slot, id) => {
+    setState((s) => ({ ...s, equipped: { ...s.equipped, [slot]: id } }))
+  }, [])
+
   const toggleMute = useCallback(() => {
     setState((s) => ({ ...s, muted: !s.muted }))
   }, [])
@@ -112,5 +133,5 @@ export function useGameState() {
   // Always expose today's daily (rolled over at midnight even before a mutation).
   const daily = rollDaily(state.daily)
 
-  return { state, daily, addCoins, finishStage, hatchEgg, toggleMute, reset, claimTask, EGG_COST }
+  return { state, daily, addCoins, finishStage, hatchEgg, buyItem, equipItem, toggleMute, reset, claimTask, EGG_COST }
 }

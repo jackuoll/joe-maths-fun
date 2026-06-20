@@ -15,7 +15,7 @@ function hintFor(step) {
   return `Not quite. Work out ${step.shownTop} − ${step.db}. Count up if it helps!`
 }
 
-export default function GameScreen({ stage, coins, onExit, onComplete }) {
+export default function GameScreen({ stage, coins, hat, onExit, onComplete }) {
   const [pIndex, setPIndex] = useState(0)
   const [problem, setProblem] = useState(() => buildProblem(stage.spec))
   const [stepIndex, setStepIndex] = useState(0)
@@ -286,7 +286,7 @@ export default function GameScreen({ stage, coins, onExit, onComplete }) {
 
       {/* Speech bubble + mascot */}
       <div className="max-w-2xl w-full mx-auto px-4 mt-3 flex items-end gap-2">
-        <Mascot size={72} mood={mood} />
+        <Mascot size={72} mood={mood} hat={hat} />
         <AnimatePresence mode="popLayout">
           <motion.div
             key={speech}

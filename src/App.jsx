@@ -6,9 +6,10 @@ import MapScreen from './components/MapScreen'
 import GameScreen from './components/GameScreen'
 import ResultScreen from './components/ResultScreen'
 import CollectionScreen from './components/CollectionScreen'
+import ShopScreen from './components/ShopScreen'
 
 export default function App() {
-  const { state, daily, finishStage, hatchEgg, toggleMute, claimTask, EGG_COST } = useGameState()
+  const { state, daily, finishStage, hatchEgg, buyItem, equipItem, toggleMute, claimTask, EGG_COST } = useGameState()
   const [screen, setScreen] = useState({ name: 'map' })
 
   useEffect(() => { sfx.setMuted(state.muted) }, [state.muted])
@@ -34,6 +35,7 @@ export default function App() {
           daily={daily}
           onPlay={play}
           onCollection={() => setScreen({ name: 'collection' })}
+          onShop={() => setScreen({ name: 'shop' })}
           onToggleMute={toggleMute}
           onClaimTask={claimTask}
         />
@@ -44,6 +46,7 @@ export default function App() {
           key={screen.stage.id}
           stage={screen.stage}
           coins={state.coins}
+          hat={state.equipped.hat}
           onExit={() => setScreen({ name: 'map' })}
           onComplete={(result) => handleComplete(screen.stage, result)}
         />
@@ -65,6 +68,15 @@ export default function App() {
           state={state}
           eggCost={EGG_COST}
           onHatch={hatchEgg}
+          onBack={() => setScreen({ name: 'map' })}
+        />
+      )}
+
+      {screen.name === 'shop' && (
+        <ShopScreen
+          state={state}
+          onBuy={buyItem}
+          onEquip={equipItem}
           onBack={() => setScreen({ name: 'map' })}
         />
       )}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { CRITTERS, RARITY_RING } from '../game/critters'
+import { themeGradient } from '../game/shop'
 import { sfx } from '../game/audio'
 import { burst } from '../game/confetti'
 import Critter from './Critter'
@@ -24,7 +25,7 @@ export default function CollectionScreen({ state, onBack, onHatch, eggCost }) {
   const revealed = reveal ? CRITTERS.find((c) => c.id === reveal) : null
 
   return (
-    <div className="min-h-full w-full" style={{ background: 'radial-gradient(120% 90% at 50% 0%, #3b4a63 0%, #1f2937 60%, #111827 100%)' }}>
+    <div className="min-h-full w-full" style={{ background: themeGradient(state.equipped.theme) }}>
       <div className="max-w-2xl mx-auto px-4 py-5">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={onBack} className="mc-btn w-10 h-10 grid place-items-center text-xl">←</button>

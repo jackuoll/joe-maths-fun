@@ -84,6 +84,15 @@ body {
   border-width: 22px 34px;
   border-image: var(--ui-btn-brown) 38 fill / 22px 34px / 0 stretch;
 }
+/* Compact claim buttons - smaller frame for tight task rows */
+.mc-btn-green-sm {
+  border-width: 12px 17px;
+  border-image: var(--ui-btn-green) 38 fill / 12px 17px / 0 stretch;
+}
+.mc-btn-brown-sm {
+  border-width: 12px 17px;
+  border-image: var(--ui-btn-brown) 38 fill / 12px 17px / 0 stretch;
+}
 
 /* Recessed item slot */
 .mc-slot {
