@@ -5,6 +5,10 @@ import { STAGE_PROBLEMS } from '../game/stages'
 import { sfx } from '../game/audio'
 import Keypad from './Keypad'
 import Mascot from './Mascot'
+import BattleBanner from './BattleBanner'
+import { HERO, randomEnemy } from '../game/battleSprites'
+
+const MAX_HEARTS = 5
 
 const toDigits = (n, len) => String(n).padStart(len, '0').split('').map(Number)
 
@@ -35,6 +39,17 @@ export default function GameScreen({ stage, coins, hat, onExit, onComplete }) {
   const mistakesRef = useRef(0)
   const lockRef = useRef(false)
   const gridRef = useRef(null)
+
+  // ---- battle layer: hero loses hearts on mistakes, mob loses HP per problem -
+  const [enemy] = useState(() => randomEnemy())
+  const [hearts, setHearts] = useState(MAX_HEARTS)
+  const [hit, setHit] = useState({ who: null, n: 0 })
+  const [victory, setVictory] = useState(false)
+  const hitRef = useRef(0)
+  const triggerHit = useCallback((who) => {
+    hitRef.current += 1
+    setHit({ who, n: hitRef.current })
+  }, [])
 
   const len = problem.len
   const steps = problem.steps
@@ -67,12 +82,17 @@ export default function GameScreen({ stage, coins, hat, onExit, onComplete }) {
 
   // ---- advance to the next problem or finish the stage --------------------
   const completeProblem = useCallback(() => {
+    triggerHit('mob') // the hero strikes the mob each time a problem is solved
     if (pIndex + 1 >= problemCount) {
       const m = mistakesRef.current
-      const stars = m === 0 ? 3 : m <= 2 ? 2 : 1
+      // Hearts are the same thing as the old mistake thresholds, just visualised:
+      // 5 hearts (no slips) = 3 stars, >=3 hearts = 2 stars, otherwise 1 star.
+      const heartsLeft = Math.max(0, MAX_HEARTS - m)
+      const stars = heartsLeft >= MAX_HEARTS ? 3 : heartsLeft >= 3 ? 2 : 1
       const coinsEarned = problemCount * 8 + stars * 10
+      setVictory(true)
       sfx.win()
-      setTimeout(() => onComplete({ stars, coinsEarned, mistakes: m }), 400)
+      setTimeout(() => onComplete({ stars, coinsEarned, mistakes: m, heartsLeft, maxHearts: MAX_HEARTS, enemyName: enemy.name }), 400)
     } else {
       setTimeout(() => {
         setProblem(buildProblem(stage.spec))
@@ -84,7 +104,7 @@ export default function GameScreen({ stage, coins, hat, onExit, onComplete }) {
         setSpeech('')
       }, 850)
     }
-  }, [pIndex, stage.spec, onComplete])
+  }, [pIndex, stage.spec, onComplete, problemCount, triggerHit, enemy.name])
 
   const goNext = useCallback(() => {
     const next = stepIndex + 1
@@ -94,12 +114,14 @@ export default function GameScreen({ stage, coins, hat, onExit, onComplete }) {
 
   const wrong = useCallback((step) => {
     mistakesRef.current += 1
+    setHearts((h) => Math.max(0, h - 1)) // a slip-up costs the hero a heart
+    triggerHit('hero')
     setShake(step.gridCol)
     setMood('think')
     setSpeech(hintFor(step))
     sfx.wrong()
     setTimeout(() => setShake(null), 450)
-  }, [])
+  }, [triggerHit])
 
   // ---- handle a digit press ------------------------------------------------
   const handleDigit = useCallback((d) => {
@@ -283,6 +305,18 @@ export default function GameScreen({ stage, coins, hat, onExit, onComplete }) {
           <span className="text-lg">🪙</span><span className="tnum">{coins}</span>
         </div>
       </div>
+
+      {/* Battle strip: hero vs randomised mob */}
+      <BattleBanner
+        hero={HERO}
+        enemy={enemy}
+        hearts={hearts}
+        maxHearts={MAX_HEARTS}
+        mobHP={victory ? 0 : problemCount - pIndex}
+        mobMax={problemCount}
+        hit={hit}
+        victory={victory}
+      />
 
       {/* Speech bubble + mascot */}
       <div className="max-w-2xl w-full mx-auto px-4 mt-3 flex items-end gap-2">

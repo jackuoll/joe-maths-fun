@@ -2,7 +2,9 @@ import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { critterById, RARITY_RING } from '../game/critters'
 import { bigCelebration } from '../game/confetti'
+import { HEART_FILLED, HEART_EMPTY } from '../game/battleSprites'
 import Critter from './Critter'
+import PixelSprite from './PixelSprite'
 
 const ui = (name) => `${import.meta.env.BASE_URL}ui/${name}`
 
@@ -46,8 +48,24 @@ export default function ResultScreen({ stage, result, newCritters, onNext, onMap
           <span className="text-xl">+{result.coinsEarned} coins</span>
         </div>
 
+        {/* Hero health + defeated mob */}
+        {result.heartsLeft != null && (
+          <div className="mb-2">
+            <div className="flex justify-center gap-1 mb-1">
+              {Array.from({ length: result.maxHearts }, (_, i) => (
+                <PixelSprite key={i} sprite={i < result.heartsLeft ? HEART_FILLED : HEART_EMPTY} size={22} />
+              ))}
+            </div>
+            {result.enemyName && (
+              <p className="text-slate-600 font-[family-name:var(--font-display)] text-sm">
+                You defeated the {result.enemyName}! ⚔️
+              </p>
+            )}
+          </div>
+        )}
+
         <p className="text-slate-500 text-sm mb-2">
-          {result.mistakes === 0 ? 'Perfect — no mistakes! 🌟' : `Finished with ${result.mistakes} slip-up${result.mistakes === 1 ? '' : 's'}. Keep practising!`}
+          {result.mistakes === 0 ? 'Perfect — no hearts lost! 🌟' : `Lost ${result.mistakes} heart${result.mistakes === 1 ? '' : 's'}. Keep practising!`}
         </p>
 
         {/* New critter */}
